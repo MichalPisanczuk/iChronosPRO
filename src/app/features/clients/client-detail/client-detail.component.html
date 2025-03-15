@@ -1,1 +1,223 @@
-<p>client-detail works!</p>
+<!-- src/app/features/clients/client-detail/client-detail.component.html -->
+<div class="client-detail-container">
+  <div class="page-header">
+    <div class="back-button">
+      <button class="btn btn-icon" routerLink="/clients">
+        <i class="fa fa-arrow-left"></i>
+      </button>
+    </div>
+    <h1 class="page-title">
+      <span *ngIf="client">{{ client.name }}</span>
+      <span *ngIf="!client && !errorMessage">Szczegóły klienta</span>
+    </h1>
+    <div class="actions" *ngIf="client">
+      <button
+        class="btn btn-outline"
+        [routerLink]="['/clients', client.id, 'edit']"
+      >
+        <i class="fa fa-edit"></i> Edytuj
+      </button>
+      <button class="btn btn-danger" (click)="confirmDeleteClient()">
+        <i class="fa fa-trash"></i> Usuń
+      </button>
+    </div>
+  </div>
+
+  <div *ngIf="isLoading" class="loading-container">
+    <div class="loading-spinner"></div>
+    <p>Ładowanie danych klienta...</p>
+  </div>
+
+  <div *ngIf="errorMessage" class="error-message">
+    <i class="fa fa-exclamation-triangle"></i>
+    <p>{{ errorMessage }}</p>
+    <button class="btn btn-outline" (click)="loadClient()">
+      Spróbuj ponownie
+    </button>
+    <button class="btn btn-outline" routerLink="/clients">
+      Wróć do listy klientów
+    </button>
+  </div>
+
+  <ng-container *ngIf="client && !isLoading">
+    <div class="content-section">
+      <div class="client-info-card">
+        <div class="card-header">
+          <h2>Informacje o kliencie</h2>
+          <span class="client-status" [class.active]="client.isActive">
+            {{ client.isActive ? "Aktywny" : "Nieaktywny" }}
+          </span>
+        </div>
+
+        <div class="info-grid">
+          <div class="info-item">
+            <span class="label">Nazwa</span>
+            <span class="value">{{ client.name }}</span>
+          </div>
+
+          <div class="info-item">
+            <span class="label">Email</span>
+            <span class="value">
+              <ng-container *ngIf="client.email; else noData">
+                <a [href]="'mailto:' + client.email">{{ client.email }}</a>
+              </ng-container>
+            </span>
+          </div>
+
+          <div class="info-item">
+            <span class="label">Telefon</span>
+            <span class="value">
+              <ng-container *ngIf="client.phone; else noData">
+                <a [href]="'tel:' + client.phone">{{ client.phone }}</a>
+              </ng-container>
+            </span>
+          </div>
+
+          <div class="info-item">
+            <span class="label">Adres</span>
+            <span class="value">
+              <ng-container *ngIf="client.address; else noData">
+                {{ client.address }}
+              </ng-container>
+            </span>
+          </div>
+
+          <div class="info-item full-width">
+            <span class="label">Notatki</span>
+            <span class="value notes">
+              <ng-container *ngIf="client.notes; else noData">
+                {{ client.notes }}
+              </ng-container>
+            </span>
+          </div>
+
+          <div class="info-item">
+            <span class="label">Data utworzenia</span>
+            <span class="value">{{
+              client.createdAt | date : "dd.MM.yyyy HH:mm"
+            }}</span>
+          </div>
+
+          <div class="info-item">
+            <span class="label">Ostatnia aktualizacja</span>
+            <span class="value">{{
+              client.updatedAt | date : "dd.MM.yyyy HH:mm"
+            }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="content-section">
+      <div class="projects-card">
+        <div class="card-header">
+          <h2>Projekty</h2>
+          <button
+            class="btn btn-primary btn-sm"
+            [routerLink]="['/projects/new']"
+            [queryParams]="{ clientId: client.id }"
+          >
+            <i class="fa fa-plus"></i> Nowy projekt
+          </button>
+        </div>
+
+        <div class="projects-list" *ngIf="isLoadingProjects">
+          <div class="loading-container">
+            <div class="loading-spinner small"></div>
+            <p>Ładowanie projektów...</p>
+          </div>
+        </div>
+
+        <div class="projects-list" *ngIf="!isLoadingProjects">
+          <div class="empty-state" *ngIf="clientProjects.length === 0">
+            <div class="empty-icon">
+              <i class="fa fa-folder-open"></i>
+            </div>
+            <h3>Brak projektów</h3>
+            <p>Ten klient nie ma jeszcze żadnych projektów.</p>
+            <button
+              class="btn btn-primary"
+              [routerLink]="['/projects/new']"
+              [queryParams]="{ clientId: client.id }"
+            >
+              <i class="fa fa-plus"></i> Dodaj pierwszy projekt
+            </button>
+          </div>
+
+          <div class="project-cards" *ngIf="clientProjects.length > 0">
+            <div
+              class="project-card"
+              *ngFor="let project of clientProjects"
+              [routerLink]="['/projects', project.id]"
+            >
+              <div class="project-card-header">
+                <h3>{{ project.name }}</h3>
+                <span class="project-status status-{{ project.status }}">
+                  {{ getStatusLabel(project.status) }}
+                </span>
+              </div>
+              <div class="project-card-content">
+                <p *ngIf="project.description" class="project-description">
+                  {{ project.description | slice : 0 : 100
+                  }}{{ project.description.length > 100 ? "..." : "" }}
+                </p>
+                <p *ngIf="!project.description" class="no-description">
+                  Brak opisu projektu
+                </p>
+              </div>
+              <div class="project-card-footer">
+                <div class="project-date">
+                  <i class="fa fa-calendar"></i>
+                  <span>{{ project.startDate | date : "dd.MM.yyyy" }}</span>
+                  <span *ngIf="project.endDate">
+                    - {{ project.endDate | date : "dd.MM.yyyy" }}</span
+                  >
+                </div>
+                <div
+                  class="project-tasks"
+                  *ngIf="projectTaskCounts[project.id] !== undefined"
+                >
+                  <i class="fa fa-tasks"></i>
+                  <span>{{ projectTaskCounts[project.id] }} zadań</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </ng-container>
+
+  <ng-template #noData>
+    <span class="no-data">Brak danych</span>
+  </ng-template>
+
+  <!-- Modal do potwierdzenia usunięcia -->
+  <div *ngIf="showDeleteModal" class="modal-overlay">
+    <div class="modal-container">
+      <div class="modal-header">
+        <h3>Potwierdzenie usunięcia</h3>
+        <button class="close-btn" (click)="cancelDelete()">
+          <i class="fa fa-times"></i>
+        </button>
+      </div>
+      <div class="modal-body">
+        <p>
+          Czy na pewno chcesz usunąć klienta: <strong>{{ client?.name }}</strong
+          >?
+        </p>
+        <p class="warning-text">
+          <i class="fa fa-exclamation-triangle"></i>
+          Ta operacja jest nieodwracalna i spowoduje również usunięcie
+          wszystkich projektów i zadań powiązanych z tym klientem.
+        </p>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-outline" (click)="cancelDelete()">Anuluj</button>
+        <button class="btn btn-danger" (click)="deleteClient()">
+          <i class="fa fa-trash"></i> Usuń klienta
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

@@ -1,1 +1,148 @@
-<p>client-form works!</p>
+<!-- src/app/features/clients/client-form/client-form.component.html -->
+<div class="client-form-container">
+  <div class="page-header">
+    <div class="back-button">
+      <button class="btn btn-icon" (click)="goBack()">
+        <i class="fa fa-arrow-left"></i>
+      </button>
+    </div>
+    <h1 class="page-title">
+      {{ isEditMode ? "Edytuj klienta" : "Dodaj nowego klienta" }}
+    </h1>
+  </div>
+
+  <div *ngIf="isLoading" class="loading-container">
+    <div class="loading-spinner"></div>
+    <p>Ładowanie danych klienta...</p>
+  </div>
+
+  <div *ngIf="errorMessage" class="error-message">
+    <i class="fa fa-exclamation-triangle"></i>
+    <p>{{ errorMessage }}</p>
+    <button *ngIf="isEditMode" class="btn btn-outline" (click)="loadClient()">
+      Spróbuj ponownie
+    </button>
+    <button class="btn btn-outline" (click)="goBack()">Wróć</button>
+  </div>
+
+  <ng-container *ngIf="!isLoading && !errorMessage">
+    <div class="form-card">
+      <form [formGroup]="clientForm" (ngSubmit)="onSubmit()">
+        <div class="form-grid">
+          <div class="form-field full-width">
+            <label for="name">Nazwa klienta *</label>
+            <input
+              type="text"
+              id="name"
+              formControlName="name"
+              class="form-control"
+              [ngClass]="{ 'is-invalid': isFieldInvalid('name') }"
+            />
+            <div class="invalid-feedback" *ngIf="isFieldInvalid('name')">
+              <div *ngIf="clientForm.get('name')?.errors?.['required']">
+                Nazwa klienta jest wymagana
+              </div>
+              <div *ngIf="clientForm.get('name')?.errors?.['minlength']">
+                Nazwa klienta musi mieć co najmniej 2 znaki
+              </div>
+              <div *ngIf="clientForm.get('name')?.errors?.['maxlength']">
+                Nazwa klienta może mieć maksymalnie 100 znaków
+              </div>
+            </div>
+          </div>
+
+          <div class="form-field">
+            <label for="email">Adres email</label>
+            <input
+              type="email"
+              id="email"
+              formControlName="email"
+              class="form-control"
+              [ngClass]="{ 'is-invalid': isFieldInvalid('email') }"
+            />
+            <div class="invalid-feedback" *ngIf="isFieldInvalid('email')">
+              <div *ngIf="clientForm.get('email')?.errors?.['email']">
+                Podaj prawidłowy adres email
+              </div>
+            </div>
+          </div>
+
+          <div class="form-field">
+            <label for="phone">Numer telefonu</label>
+            <input
+              type="tel"
+              id="phone"
+              formControlName="phone"
+              class="form-control"
+              [ngClass]="{ 'is-invalid': isFieldInvalid('phone') }"
+            />
+            <div class="invalid-feedback" *ngIf="isFieldInvalid('phone')">
+              <div *ngIf="clientForm.get('phone')?.errors?.['pattern']">
+                Podaj prawidłowy numer telefonu
+              </div>
+            </div>
+          </div>
+
+          <div class="form-field full-width">
+            <label for="address">Adres</label>
+            <input
+              type="text"
+              id="address"
+              formControlName="address"
+              class="form-control"
+            />
+          </div>
+
+          <div class="form-field full-width">
+            <label for="notes">Notatki</label>
+            <textarea
+              id="notes"
+              formControlName="notes"
+              class="form-control textarea"
+              rows="4"
+            ></textarea>
+          </div>
+
+          <div class="form-field checkbox-field">
+            <label class="checkbox-label">
+              <input type="checkbox" id="isActive" formControlName="isActive" />
+              <span class="checkbox-text">Klient aktywny</span>
+            </label>
+            <div class="checkbox-hint">
+              Nieaktywni klienci nie będą wyświetlani na listach domyślnych
+            </div>
+          </div>
+        </div>
+
+        <div class="form-actions">
+          <button type="button" class="btn btn-outline" (click)="goBack()">
+            Anuluj
+          </button>
+          <button
+            type="submit"
+            class="btn btn-primary"
+            [disabled]="clientForm.invalid || isSubmitting"
+          >
+            <i
+              class="fa"
+              [ngClass]="
+                isSubmitting
+                  ? 'fa-spinner fa-spin'
+                  : isEditMode
+                  ? 'fa-save'
+                  : 'fa-plus'
+              "
+            ></i>
+            {{
+              isSubmitting
+                ? "Zapisywanie..."
+                : isEditMode
+                ? "Zapisz zmiany"
+                : "Dodaj klienta"
+            }}
+          </button>
+        </div>
+      </form>
+    </div>
+  </ng-container>
+</div>

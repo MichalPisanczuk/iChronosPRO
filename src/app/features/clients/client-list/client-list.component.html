@@ -2,36 +2,112 @@
 <div class="client-list-container">
   <div class="page-header">
     <h1 class="page-title">Klienci</h1>
-    <button class="btn btn-primary" routerLink="/clients/new">
-      Dodaj klienta
-    </button>
+    <div class="actions">
+      <button class="btn btn-primary" routerLink="/clients/new">
+        <i class="fa fa-plus"></i> Dodaj klienta
+      </button>
+    </div>
+  </div>
+
+  <div class="filters-container">
+    <div class="search-box">
+      <input
+        type="text"
+        placeholder="Szukaj klientów..."
+        class="search-input"
+        [(ngModel)]="searchTerm"
+        (input)="applyFilters()"
+      />
+      <i class="fa fa-search search-icon"></i>
+    </div>
+    <div class="filter-options">
+      <div class="filter-group">
+        <label>Status:</label>
+        <select [(ngModel)]="statusFilter" (change)="applyFilters()">
+          <option value="all">Wszystkie</option>
+          <option value="active">Aktywne</option>
+          <option value="inactive">Nieaktywne</option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <label>Sortuj wg:</label>
+        <select [(ngModel)]="sortBy" (change)="applyFilters()">
+          <option value="name">Nazwa</option>
+          <option value="createdAt">Data utworzenia</option>
+          <option value="updatedAt">Data aktualizacji</option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <label>Kierunek:</label>
+        <select [(ngModel)]="sortDirection" (change)="applyFilters()">
+          <option value="asc">Rosnąco</option>
+          <option value="desc">Malejąco</option>
+        </select>
+      </div>
+    </div>
   </div>
 
   <div class="content-card">
-    <div *ngIf="isLoading" class="loading-spinner">Ładowanie...</div>
+    <div *ngIf="isLoading" class="loading-container">
+      <div class="loading-spinner"></div>
+      <p>Ładowanie klientów...</p>
+    </div>
 
     <div *ngIf="errorMessage" class="error-message">
-      {{ errorMessage }}
+      <i class="fa fa-exclamation-triangle"></i>
+      <p>{{ errorMessage }}</p>
+      <button class="btn btn-outline" (click)="loadClients()">
+        Spróbuj ponownie
+      </button>
     </div>
 
     <div *ngIf="!isLoading && !errorMessage">
-      <table *ngIf="clients.length > 0; else noClients" class="client-table">
+      <table
+        *ngIf="filteredClients.length > 0; else noClients"
+        class="client-table"
+      >
         <thead>
           <tr>
-            <th>Nazwa</th>
+            <th (click)="changeSorting('name')" class="sortable">
+              Nazwa
+              <i
+                *ngIf="sortBy === 'name'"
+                class="fa"
+                [ngClass]="
+                  sortDirection === 'asc' ? 'fa-arrow-up' : 'fa-arrow-down'
+                "
+              ></i>
+            </th>
             <th>Email</th>
             <th>Telefon</th>
-            <th>Status</th>
+            <th (click)="changeSorting('isActive')" class="sortable">
+              Status
+              <i
+                *ngIf="sortBy === 'isActive'"
+                class="fa"
+                [ngClass]="
+                  sortDirection === 'asc' ? 'fa-arrow-up' : 'fa-arrow-down'
+                "
+              ></i>
+            </th>
+            <th (click)="changeSorting('createdAt')" class="sortable">
+              Data utworzenia
+              <i
+                *ngIf="sortBy === 'createdAt'"
+                class="fa"
+                [ngClass]="
+                  sortDirection === 'asc' ? 'fa-arrow-up' : 'fa-arrow-down'
+                "
+              ></i>
+            </th>
             <th>Akcje</th>
           </tr>
         </thead>
         <tbody>
-          <tr
-            *ngFor="let client of clients"
-            [routerLink]="['/clients', client.id]"
-            class="client-row"
-          >
-            <td>{{ client.name }}</td>
+          <tr *ngFor="let client of filteredClients" class="client-row">
+            <td class="client-name-cell" (click)="viewClientDetails(client)">
+              <span class="client-name">{{ client.name }}</span>
+            </td>
             <td>{{ client.email || "-" }}</td>
             <td>{{ client.phone || "-" }}</td>
             <td>
@@ -43,17 +119,19 @@
                 {{ client.isActive ? "Aktywny" : "Nieaktywny" }}
               </span>
             </td>
+            <td>{{ client.createdAt | date : "dd.MM.yyyy" }}</td>
             <td class="actions">
               <button
-                class="btn btn-icon"
-                [routerLink]="['/clients', client.id, 'edit']"
-                (click)="$event.stopPropagation()"
+                class="btn-icon"
+                title="Edytuj klienta"
+                (click)="editClient(client); $event.stopPropagation()"
               >
                 <i class="fa fa-edit"></i>
               </button>
               <button
-                class="btn btn-icon btn-danger"
-                (click)="deleteClient(client, $event)"
+                class="btn-icon btn-danger"
+                title="Usuń klienta"
+                (click)="confirmDeleteClient(client); $event.stopPropagation()"
               >
                 <i class="fa fa-trash"></i>
               </button>
@@ -64,12 +142,53 @@
 
       <ng-template #noClients>
         <div class="empty-state">
-          <p>Brak klientów</p>
+          <div class="empty-icon">
+            <i class="fa fa-users"></i>
+          </div>
+          <h3>Brak klientów</h3>
+          <p *ngIf="searchTerm || statusFilter !== 'all'">
+            Żaden klient nie spełnia wybranych kryteriów. Zmień filtry lub dodaj
+            nowych klientów.
+          </p>
+          <p *ngIf="!searchTerm && statusFilter === 'all'">
+            Nie masz jeszcze żadnych klientów. Dodaj pierwszego klienta, aby
+            zacząć.
+          </p>
           <button class="btn btn-primary" routerLink="/clients/new">
-            Dodaj pierwszego klienta
+            <i class="fa fa-plus"></i> Dodaj pierwszego klienta
           </button>
         </div>
       </ng-template>
+    </div>
+  </div>
+
+  <!-- Modal do potwierdzenia usunięcia -->
+  <div *ngIf="showDeleteModal" class="modal-overlay">
+    <div class="modal-container">
+      <div class="modal-header">
+        <h3>Potwierdzenie usunięcia</h3>
+        <button class="close-btn" (click)="cancelDelete()">
+          <i class="fa fa-times"></i>
+        </button>
+      </div>
+      <div class="modal-body">
+        <p>
+          Czy na pewno chcesz usunąć klienta:
+          <strong>{{ clientToDelete?.name }}</strong
+          >?
+        </p>
+        <p class="warning-text">
+          <i class="fa fa-exclamation-triangle"></i>
+          Ta operacja jest nieodwracalna i spowoduje również usunięcie
+          wszystkich projektów i zadań powiązanych z tym klientem.
+        </p>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-outline" (click)="cancelDelete()">Anuluj</button>
+        <button class="btn btn-danger" (click)="deleteClient()">
+          <i class="fa fa-trash"></i> Usuń klienta
+        </button>
+      </div>
     </div>
   </div>
 </div>
