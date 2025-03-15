@@ -1,0 +1,73 @@
+<!-- src/app/layouts/main-layout/main-layout.component.html -->
+<div class="main-layout" [class.sidebar-collapsed]="isSidebarCollapsed">
+  <header class="header">
+    <div class="header-left">
+      <button class="sidebar-toggle" (click)="toggleSidebar()">
+        <i class="fa fa-bars"></i>
+      </button>
+      <span class="app-title">iChronosPro</span>
+    </div>
+    <div class="header-right">
+      <div class="timer-widget">
+        <app-timer-widget class="timer-widget"></app-timer-widget>
+      </div>
+      <div class="user-dropdown" *ngIf="currentUser">
+        <span class="user-name"
+          >{{ currentUser.firstName }} {{ currentUser.lastName }}</span
+        >
+        <div class="dropdown-menu">
+          <a routerLink="/profile">Profil</a>
+          <a routerLink="/settings">Ustawienia</a>
+          <a href="javascript:void(0)" (click)="logout()">Wyloguj</a>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <aside class="sidebar" [class.collapsed]="isSidebarCollapsed">
+    <nav class="sidebar-nav">
+      <ul>
+        <li>
+          <a routerLink="/dashboard" routerLinkActive="active">
+            <i class="fa fa-dashboard"></i>
+            <span>Dashboard</span>
+          </a>
+        </li>
+        <li>
+          <a routerLink="/clients" routerLinkActive="active">
+            <i class="fa fa-users"></i>
+            <span>Klienci</span>
+          </a>
+        </li>
+        <li>
+          <a routerLink="/projects" routerLinkActive="active">
+            <i class="fa fa-folder"></i>
+            <span>Projekty</span>
+          </a>
+        </li>
+        <li>
+          <a routerLink="/tasks" routerLinkActive="active">
+            <i class="fa fa-tasks"></i>
+            <span>Zadania</span>
+          </a>
+        </li>
+        <li>
+          <a routerLink="/time-tracker" routerLinkActive="active">
+            <i class="fa fa-clock-o"></i>
+            <span>Śledzenie czasu</span>
+          </a>
+        </li>
+        <li>
+          <a routerLink="/reports" routerLinkActive="active">
+            <i class="fa fa-bar-chart"></i>
+            <span>Raporty</span>
+          </a>
+        </li>
+      </ul>
+    </nav>
+  </aside>
+
+  <main class="content">
+    <router-outlet></router-outlet>
+  </main>
+</div>

@@ -1,0 +1,83 @@
+<!-- src/app/features/auth/login/login.component.html -->
+<div class="login-container">
+  <div class="login-card">
+    <h2 class="login-title">Logowanie do iChronosPro</h2>
+
+    <form [formGroup]="loginForm" (ngSubmit)="onSubmit()" class="login-form">
+      <div class="form-group">
+        <label for="email">Email</label>
+        <input
+          type="email"
+          id="email"
+          formControlName="email"
+          class="form-control"
+          [ngClass]="{
+            'is-invalid':
+              loginForm.get('email')?.invalid && loginForm.get('email')?.touched
+          }"
+        />
+        <div
+          *ngIf="
+            loginForm.get('email')?.invalid && loginForm.get('email')?.touched
+          "
+          class="invalid-feedback"
+        >
+          <div *ngIf="loginForm.get('email')?.errors?.['required']">
+            Email jest wymagany
+          </div>
+          <div *ngIf="loginForm.get('email')?.errors?.['email']">
+            Podaj prawidłowy adres email
+          </div>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="password">Hasło</label>
+        <input
+          type="password"
+          id="password"
+          formControlName="password"
+          class="form-control"
+          [ngClass]="{
+            'is-invalid':
+              loginForm.get('password')?.invalid &&
+              loginForm.get('password')?.touched
+          }"
+        />
+        <div
+          *ngIf="
+            loginForm.get('password')?.invalid &&
+            loginForm.get('password')?.touched
+          "
+          class="invalid-feedback"
+        >
+          <div *ngIf="loginForm.get('password')?.errors?.['required']">
+            Hasło jest wymagane
+          </div>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <a routerLink="/auth/forgot-password" class="forgot-password"
+          >Zapomniałeś hasła?</a
+        >
+      </div>
+
+      <div *ngIf="errorMessage" class="alert alert-danger">
+        {{ errorMessage }}
+      </div>
+
+      <button
+        type="submit"
+        class="btn btn-primary btn-block"
+        [disabled]="loginForm.invalid || isSubmitting"
+      >
+        {{ isSubmitting ? "Logowanie..." : "Zaloguj się" }}
+      </button>
+
+      <div class="register-link">
+        Nie masz konta? <a routerLink="/auth/register">Zarejestruj się</a>
+      </div>
+    </form>
+  </div>
+</div>

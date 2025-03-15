@@ -1,0 +1,204 @@
+<!-- src/app/features/auth/register/register.component.html -->
+<div class="register-container">
+  <div class="register-card">
+    <h2 class="register-title">Rejestracja w iChronosPro</h2>
+
+    <form
+      [formGroup]="registerForm"
+      (ngSubmit)="onSubmit()"
+      class="register-form"
+    >
+      <div class="form-row">
+        <div class="form-group">
+          <label for="firstName">Imię</label>
+          <input
+            type="text"
+            id="firstName"
+            formControlName="firstName"
+            class="form-control"
+            [ngClass]="{
+              'is-invalid':
+                registerForm.get('firstName')?.invalid &&
+                registerForm.get('firstName')?.touched
+            }"
+          />
+          <div
+            *ngIf="
+              registerForm.get('firstName')?.invalid &&
+              registerForm.get('firstName')?.touched
+            "
+            class="invalid-feedback"
+          >
+            <div *ngIf="registerForm.get('firstName')?.errors?.['required']">
+              Imię jest wymagane
+            </div>
+            <div *ngIf="registerForm.get('firstName')?.errors?.['minlength']">
+              Imię musi mieć co najmniej 2 znaki
+            </div>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="lastName">Nazwisko</label>
+          <input
+            type="text"
+            id="lastName"
+            formControlName="lastName"
+            class="form-control"
+            [ngClass]="{
+              'is-invalid':
+                registerForm.get('lastName')?.invalid &&
+                registerForm.get('lastName')?.touched
+            }"
+          />
+          <div
+            *ngIf="
+              registerForm.get('lastName')?.invalid &&
+              registerForm.get('lastName')?.touched
+            "
+            class="invalid-feedback"
+          >
+            <div *ngIf="registerForm.get('lastName')?.errors?.['required']">
+              Nazwisko jest wymagane
+            </div>
+            <div *ngIf="registerForm.get('lastName')?.errors?.['minlength']">
+              Nazwisko musi mieć co najmniej 2 znaki
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="username">Nazwa użytkownika</label>
+        <input
+          type="text"
+          id="username"
+          formControlName="username"
+          class="form-control"
+          [ngClass]="{
+            'is-invalid':
+              registerForm.get('username')?.invalid &&
+              registerForm.get('username')?.touched
+          }"
+        />
+        <div
+          *ngIf="
+            registerForm.get('username')?.invalid &&
+            registerForm.get('username')?.touched
+          "
+          class="invalid-feedback"
+        >
+          <div *ngIf="registerForm.get('username')?.errors?.['required']">
+            Nazwa użytkownika jest wymagana
+          </div>
+          <div *ngIf="registerForm.get('username')?.errors?.['minlength']">
+            Nazwa użytkownika musi mieć co najmniej 3 znaki
+          </div>
+          <div *ngIf="registerForm.get('username')?.errors?.['maxlength']">
+            Nazwa użytkownika może mieć maksymalnie 50 znaków
+          </div>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="email">Email</label>
+        <input
+          type="email"
+          id="email"
+          formControlName="email"
+          class="form-control"
+          [ngClass]="{
+            'is-invalid':
+              registerForm.get('email')?.invalid &&
+              registerForm.get('email')?.touched
+          }"
+        />
+        <div
+          *ngIf="
+            registerForm.get('email')?.invalid &&
+            registerForm.get('email')?.touched
+          "
+          class="invalid-feedback"
+        >
+          <div *ngIf="registerForm.get('email')?.errors?.['required']">
+            Email jest wymagany
+          </div>
+          <div *ngIf="registerForm.get('email')?.errors?.['email']">
+            Podaj prawidłowy adres email
+          </div>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="password">Hasło</label>
+        <input
+          type="password"
+          id="password"
+          formControlName="password"
+          class="form-control"
+          [ngClass]="{
+            'is-invalid':
+              registerForm.get('password')?.invalid &&
+              registerForm.get('password')?.touched
+          }"
+        />
+        <div
+          *ngIf="
+            registerForm.get('password')?.invalid &&
+            registerForm.get('password')?.touched
+          "
+          class="invalid-feedback"
+        >
+          <div *ngIf="registerForm.get('password')?.errors?.['required']">
+            Hasło jest wymagane
+          </div>
+          <div *ngIf="registerForm.get('password')?.errors?.['minlength']">
+            Hasło musi mieć co najmniej 6 znaków
+          </div>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="hourlyRate">Stawka godzinowa (opcjonalnie)</label>
+        <input
+          type="number"
+          id="hourlyRate"
+          formControlName="hourlyRate"
+          class="form-control"
+          [ngClass]="{
+            'is-invalid':
+              registerForm.get('hourlyRate')?.invalid &&
+              registerForm.get('hourlyRate')?.touched
+          }"
+        />
+        <div
+          *ngIf="
+            registerForm.get('hourlyRate')?.invalid &&
+            registerForm.get('hourlyRate')?.touched
+          "
+          class="invalid-feedback"
+        >
+          <div *ngIf="registerForm.get('hourlyRate')?.errors?.['min']">
+            Stawka godzinowa musi być większa lub równa 0
+          </div>
+        </div>
+      </div>
+
+      <div *ngIf="errorMessage" class="alert alert-danger">
+        {{ errorMessage }}
+      </div>
+
+      <button
+        type="submit"
+        class="btn btn-primary btn-block"
+        [disabled]="registerForm.invalid || isSubmitting"
+      >
+        {{ isSubmitting ? "Rejestracja..." : "Zarejestruj się" }}
+      </button>
+
+      <div class="login-link">
+        Masz już konto? <a routerLink="/auth/login">Zaloguj się</a>
+      </div>
+    </form>
+  </div>
+</div>

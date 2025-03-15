@@ -1,0 +1,75 @@
+<!-- src/app/features/clients/client-list/client-list.component.html -->
+<div class="client-list-container">
+  <div class="page-header">
+    <h1 class="page-title">Klienci</h1>
+    <button class="btn btn-primary" routerLink="/clients/new">
+      Dodaj klienta
+    </button>
+  </div>
+
+  <div class="content-card">
+    <div *ngIf="isLoading" class="loading-spinner">Ładowanie...</div>
+
+    <div *ngIf="errorMessage" class="error-message">
+      {{ errorMessage }}
+    </div>
+
+    <div *ngIf="!isLoading && !errorMessage">
+      <table *ngIf="clients.length > 0; else noClients" class="client-table">
+        <thead>
+          <tr>
+            <th>Nazwa</th>
+            <th>Email</th>
+            <th>Telefon</th>
+            <th>Status</th>
+            <th>Akcje</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr
+            *ngFor="let client of clients"
+            [routerLink]="['/clients', client.id]"
+            class="client-row"
+          >
+            <td>{{ client.name }}</td>
+            <td>{{ client.email || "-" }}</td>
+            <td>{{ client.phone || "-" }}</td>
+            <td>
+              <span
+                class="client-status"
+                [class.active]="client.isActive"
+                (click)="toggleClientStatus(client); $event.stopPropagation()"
+              >
+                {{ client.isActive ? "Aktywny" : "Nieaktywny" }}
+              </span>
+            </td>
+            <td class="actions">
+              <button
+                class="btn btn-icon"
+                [routerLink]="['/clients', client.id, 'edit']"
+                (click)="$event.stopPropagation()"
+              >
+                <i class="fa fa-edit"></i>
+              </button>
+              <button
+                class="btn btn-icon btn-danger"
+                (click)="deleteClient(client, $event)"
+              >
+                <i class="fa fa-trash"></i>
+              </button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+
+      <ng-template #noClients>
+        <div class="empty-state">
+          <p>Brak klientów</p>
+          <button class="btn btn-primary" routerLink="/clients/new">
+            Dodaj pierwszego klienta
+          </button>
+        </div>
+      </ng-template>
+    </div>
+  </div>
+</div>

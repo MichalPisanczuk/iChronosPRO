@@ -1,0 +1,96 @@
+<!-- src/app/features/dashboard/dashboard.component.html -->
+<div class="dashboard">
+  <h1 class="page-title">Dashboard</h1>
+
+  <div class="welcome-card" *ngIf="currentUser">
+    <h2>Witaj, {{ currentUser.firstName }}!</h2>
+    <p>
+      To jest Twój dashboard, gdzie znajdziesz przegląd wszystkich
+      najważniejszych informacji.
+    </p>
+  </div>
+
+  <div class="stats-cards">
+    <div class="stats-card">
+      <h3>Dzisiejszy czas</h3>
+      <div class="stats-value">0h 0m</div>
+      <div class="stats-subtext">Brak zarejestrowanego czasu</div>
+    </div>
+
+    <div class="stats-card">
+      <h3>Ten tydzień</h3>
+      <div class="stats-value">0h 0m</div>
+      <div class="stats-subtext">Brak zarejestrowanego czasu</div>
+    </div>
+
+    <div class="stats-card">
+      <h3>Ten miesiąc</h3>
+      <div class="stats-value">0h 0m</div>
+      <div class="stats-subtext">Brak zarejestrowanego czasu</div>
+    </div>
+
+    <div class="stats-card">
+      <h3>Zarobki (miesiąc)</h3>
+      <div class="stats-value">0,00 PLN</div>
+      <div class="stats-subtext">Brak rozliczalnego czasu</div>
+    </div>
+  </div>
+
+  <div class="dashboard-content">
+    <div class="dashboard-column">
+      <div class="dashboard-card">
+        <h3>Ostatnie projekty</h3>
+        <div class="dashboard-card-content empty-state">
+          <p>Brak aktywnych projektów</p>
+          <button class="btn btn-primary">Utwórz projekt</button>
+        </div>
+      </div>
+
+      <div class="dashboard-card">
+        <h3>Zadania z bliskim terminem</h3>
+        <div class="dashboard-card-content empty-state">
+          <p>Brak zadań z bliskim terminem</p>
+          <button class="btn btn-primary">Utwórz zadanie</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="dashboard-column">
+      <div class="dashboard-card">
+        <h3>Klienci</h3>
+        <div class="dashboard-card-content">
+          <div *ngIf="isLoading" class="loading-spinner">Ładowanie...</div>
+
+          <div *ngIf="errorMessage" class="error-message">
+            {{ errorMessage }}
+          </div>
+
+          <div *ngIf="!isLoading && !errorMessage">
+            <ul class="client-list" *ngIf="clients.length > 0; else noClients">
+              <li *ngFor="let client of clients" class="client-item">
+                <span class="client-name">{{ client.name }}</span>
+                <span class="client-status" [class.active]="client.isActive">
+                  {{ client.isActive ? "Aktywny" : "Nieaktywny" }}
+                </span>
+              </li>
+            </ul>
+
+            <ng-template #noClients>
+              <div class="empty-state">
+                <p>Brak klientów</p>
+                <button class="btn btn-primary">Dodaj klienta</button>
+              </div>
+            </ng-template>
+          </div>
+        </div>
+      </div>
+
+      <div class="dashboard-card">
+        <h3>Czas w tym tygodniu</h3>
+        <div class="dashboard-card-content empty-state">
+          <p>Brak danych do wyświetlenia</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

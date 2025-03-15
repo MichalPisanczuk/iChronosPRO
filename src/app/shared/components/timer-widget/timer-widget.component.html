@@ -1,0 +1,14 @@
+<!-- src/app/shared/components/timer-widget/timer-widget.component.html -->
+<div class="timer-widget">
+  <div class="timer-task" *ngIf="activeTask">
+    {{ activeTask.name }}
+  </div>
+  <div class="timer-display">{{ currentTime }}</div>
+  <button
+    class="timer-button"
+    [class.running]="isRunning"
+    (click)="toggleTimer()"
+  >
+    {{ isRunning ? "Stop" : "Start" }}
+  </button>
+</div>
