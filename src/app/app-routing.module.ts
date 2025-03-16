@@ -42,6 +42,20 @@ const routes: Routes = [
           import('./features/tasks/tasks.module').then((m) => m.TasksModule),
       },
       {
+        path: 'time-tracker',
+        loadChildren: () =>
+          import('./features/time-tracker/time-tracker.module').then(
+            (m) => m.TimeTrackerModule
+          ),
+      },
+      {
+        path: 'reports',
+        loadChildren: () =>
+          import('./features/reports/reports.module').then(
+            (m) => m.ReportsModule
+          ),
+      },
+      {
         path: '',
         redirectTo: 'dashboard',
         pathMatch: 'full',

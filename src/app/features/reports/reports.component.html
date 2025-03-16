@@ -1,0 +1,623 @@
+<!-- src/app/features/reports/reports.component.html -->
+<div class="reports-container">
+  <div class="page-header">
+    <h1 class="page-title">Raporty</h1>
+  </div>
+
+  <div class="reports-tabs">
+    <div
+      class="tab"
+      [class.active]="currentTab === 'time'"
+      (click)="switchTab('time')"
+    >
+      <i class="fa fa-clock-o"></i> Raporty czasowe
+    </div>
+    <div
+      class="tab"
+      [class.active]="currentTab === 'projects'"
+      (click)="switchTab('projects')"
+    >
+      <i class="fa fa-folder"></i> Raporty projektowe
+    </div>
+    <div
+      class="tab"
+      [class.active]="currentTab === 'clients'"
+      (click)="switchTab('clients')"
+    >
+      <i class="fa fa-users"></i> Raporty klientów
+    </div>
+    <div
+      class="tab"
+      [class.active]="currentTab === 'earnings'"
+      (click)="switchTab('earnings')"
+    >
+      <i class="fa fa-money"></i> Raporty zarobków
+    </div>
+  </div>
+
+  <div class="reports-content">
+    <!-- Filtr wspólny dla wszystkich raportów -->
+    <div class="filter-card">
+      <div class="filter-header">
+        <h2>Filtry</h2>
+        <button class="btn btn-clear" (click)="clearFilters()">
+          <i class="fa fa-refresh"></i> Wyczyść filtry
+        </button>
+      </div>
+
+      <div class="filter-content">
+        <div class="filter-row">
+          <div class="filter-group">
+            <label>Okres</label>
+            <select [(ngModel)]="dateRange" (change)="updateDateRangeFilter()">
+              <option value="today">Dzisiaj</option>
+              <option value="yesterday">Wczoraj</option>
+              <option value="thisWeek">Ten tydzień</option>
+              <option value="lastWeek">Poprzedni tydzień</option>
+              <option value="thisMonth">Ten miesiąc</option>
+              <option value="lastMonth">Poprzedni miesiąc</option>
+              <option value="thisYear">Ten rok</option>
+              <option value="custom">Niestandardowy</option>
+            </select>
+          </div>
+
+          <div class="filter-group" *ngIf="dateRange === 'custom'">
+            <label>Od</label>
+            <input
+              type="date"
+              [(ngModel)]="startDate"
+              (change)="applyFilters()"
+            />
+          </div>
+
+          <div class="filter-group" *ngIf="dateRange === 'custom'">
+            <label>Do</label>
+            <input
+              type="date"
+              [(ngModel)]="endDate"
+              (change)="applyFilters()"
+            />
+          </div>
+        </div>
+
+        <div class="filter-row">
+          <!-- Filtry specyficzne dla aktualnego typu raportu -->
+          <ng-container [ngSwitch]="currentTab">
+            <!-- Filtry dla raportów czasowych -->
+            <ng-container *ngSwitchCase="'time'">
+              <div class="filter-group">
+                <label>Grupuj wg</label>
+                <select [(ngModel)]="timeGroupBy" (change)="applyFilters()">
+                  <option value="daily">Dzień</option>
+                  <option value="weekly">Tydzień</option>
+                  <option value="monthly">Miesiąc</option>
+                </select>
+              </div>
+
+              <div class="filter-group">
+                <label>Status rozliczenia</label>
+                <select [(ngModel)]="billableFilter" (change)="applyFilters()">
+                  <option value="all">Wszystkie</option>
+                  <option value="billable">Rozliczalne</option>
+                  <option value="nonBillable">Nierozliczalne</option>
+                </select>
+              </div>
+            </ng-container>
+
+            <!-- Filtry dla raportów projektowych -->
+            <ng-container *ngSwitchCase="'projects'">
+              <div class="filter-group">
+                <label>Projekt</label>
+                <select [(ngModel)]="projectFilter" (change)="applyFilters()">
+                  <option value="all">Wszystkie projekty</option>
+                  <option *ngFor="let project of projects" [value]="project.id">
+                    {{ project.name }}
+                  </option>
+                </select>
+              </div>
+
+              <div class="filter-group">
+                <label>Status</label>
+                <select
+                  [(ngModel)]="projectStatusFilter"
+                  (change)="applyFilters()"
+                >
+                  <option value="all">Wszystkie statusy</option>
+                  <option value="active">Aktywne</option>
+                  <option value="completed">Zakończone</option>
+                  <option value="paused">Wstrzymane</option>
+                  <option value="cancelled">Anulowane</option>
+                </select>
+              </div>
+            </ng-container>
+
+            <!-- Filtry dla raportów klientów -->
+            <ng-container *ngSwitchCase="'clients'">
+              <div class="filter-group">
+                <label>Klient</label>
+                <select [(ngModel)]="clientFilter" (change)="applyFilters()">
+                  <option value="all">Wszyscy klienci</option>
+                  <option *ngFor="let client of clients" [value]="client.id">
+                    {{ client.name }}
+                  </option>
+                </select>
+              </div>
+
+              <div class="filter-group">
+                <label>Status</label>
+                <select
+                  [(ngModel)]="clientStatusFilter"
+                  (change)="applyFilters()"
+                >
+                  <option value="all">Wszystkie statusy</option>
+                  <option value="active">Aktywni</option>
+                  <option value="inactive">Nieaktywni</option>
+                </select>
+              </div>
+            </ng-container>
+
+            <!-- Filtry dla raportów zarobków -->
+            <ng-container *ngSwitchCase="'earnings'">
+              <div class="filter-group">
+                <label>Grupuj wg</label>
+                <select [(ngModel)]="earningsGroupBy" (change)="applyFilters()">
+                  <option value="daily">Dzień</option>
+                  <option value="weekly">Tydzień</option>
+                  <option value="monthly">Miesiąc</option>
+                  <option value="client">Klient</option>
+                  <option value="project">Projekt</option>
+                </select>
+              </div>
+
+              <div class="filter-group">
+                <label>Minimalna kwota</label>
+                <input
+                  type="number"
+                  [(ngModel)]="minAmount"
+                  placeholder="0"
+                  (change)="applyFilters()"
+                />
+              </div>
+            </ng-container>
+          </ng-container>
+        </div>
+      </div>
+    </div>
+
+    <!-- Zawartość raportu (wykresy, tabele) -->
+    <div class="report-card">
+      <div class="report-header">
+        <h2>{{ getReportTitle() }}</h2>
+        <div class="report-actions">
+          <button class="btn btn-outline" (click)="refreshReport()">
+            <i class="fa fa-refresh"></i> Odśwież
+          </button>
+          <div class="export-dropdown">
+            <button class="btn btn-primary dropdown-toggle">
+              <i class="fa fa-download"></i> Eksportuj
+              <i class="fa fa-caret-down"></i>
+            </button>
+            <div class="dropdown-menu">
+              <button class="dropdown-item" (click)="exportTo('pdf')">
+                <i class="fa fa-file-pdf-o"></i> Eksportuj do PDF
+              </button>
+              <button class="dropdown-item" (click)="exportTo('excel')">
+                <i class="fa fa-file-excel-o"></i> Eksportuj do Excel
+              </button>
+              <button class="dropdown-item" (click)="exportTo('csv')">
+                <i class="fa fa-file-text-o"></i> Eksportuj do CSV
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="report-content">
+        <div *ngIf="isLoading" class="loading-container">
+          <div class="loading-spinner"></div>
+          <p>Generowanie raportu...</p>
+        </div>
+
+        <div *ngIf="!isLoading && errorMessage" class="error-message">
+          <i class="fa fa-exclamation-triangle"></i>
+          <p>{{ errorMessage }}</p>
+          <button class="btn btn-outline" (click)="refreshReport()">
+            Spróbuj ponownie
+          </button>
+        </div>
+
+        <div *ngIf="!isLoading && !errorMessage">
+          <!-- Zawartość zależna od typu raportu -->
+          <ng-container [ngSwitch]="currentTab">
+            <!-- Raport czasowy -->
+            <ng-container *ngSwitchCase="'time'">
+              <div class="summary-metrics">
+                <div class="metric">
+                  <div class="metric-value">
+                    {{ totalHours | number : "1.1-1" }}h
+                  </div>
+                  <div class="metric-label">Łączny czas</div>
+                </div>
+                <div class="metric">
+                  <div class="metric-value">
+                    {{ billableHours | number : "1.1-1" }}h
+                  </div>
+                  <div class="metric-label">Czas rozliczalny</div>
+                </div>
+                <div class="metric">
+                  <div class="metric-value">
+                    {{ nonBillableHours | number : "1.1-1" }}h
+                  </div>
+                  <div class="metric-label">Czas nierozliczalny</div>
+                </div>
+                <div class="metric">
+                  <div class="metric-value">
+                    {{ billablePercentage | number : "1.0-0" }}%
+                  </div>
+                  <div class="metric-label">% rozliczalnego</div>
+                </div>
+              </div>
+
+              <div class="chart-container">
+                <h3>Rozkład czasu w wybranym okresie</h3>
+                <div class="time-chart">
+                  <!-- Tu będzie wykres wygenerowany przez bibliotekę Chart.js -->
+                  <div class="chart-placeholder">
+                    <div class="placeholder-bars">
+                      <div
+                        class="bar"
+                        *ngFor="let i of [1, 2, 3, 4, 5, 6, 7]"
+                        [style.height.px]="30 + i * 10"
+                      ></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div
+                class="data-table-container"
+                *ngIf="timeEntryReportData.length > 0"
+              >
+                <h3>Szczegóły raportowanego czasu</h3>
+                <table class="data-table">
+                  <thead>
+                    <tr>
+                      <th>Data</th>
+                      <th>Czas (h)</th>
+                      <th>Rozliczalne (h)</th>
+                      <th>Nierozliczalne (h)</th>
+                      <th>Zadania</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr *ngFor="let entry of timeEntryReportData">
+                      <td>{{ entry.date }}</td>
+                      <td>{{ entry.totalHours | number : "1.1-1" }}</td>
+                      <td>{{ entry.billableHours | number : "1.1-1" }}</td>
+                      <td>{{ entry.nonBillableHours | number : "1.1-1" }}</td>
+                      <td>{{ entry.taskCount }}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <div class="empty-state" *ngIf="timeEntryReportData.length === 0">
+                <div class="empty-icon">
+                  <i class="fa fa-clock-o"></i>
+                </div>
+                <h3>Brak danych</h3>
+                <p>Nie znaleziono wpisów czasowych spełniających kryteria.</p>
+              </div>
+            </ng-container>
+
+            <!-- Raport projektowy -->
+            <ng-container *ngSwitchCase="'projects'">
+              <div class="summary-metrics">
+                <div class="metric">
+                  <div class="metric-value">
+                    {{ projectSummary.totalCount }}
+                  </div>
+                  <div class="metric-label">Liczba projektów</div>
+                </div>
+                <div class="metric">
+                  <div class="metric-value">
+                    {{ projectSummary.activeCount }}
+                  </div>
+                  <div class="metric-label">Aktywne projekty</div>
+                </div>
+                <div class="metric">
+                  <div class="metric-value">
+                    {{ projectSummary.totalHours | number : "1.1-1" }}h
+                  </div>
+                  <div class="metric-label">Łączny czas</div>
+                </div>
+                <div class="metric">
+                  <div class="metric-value">
+                    {{
+                      projectSummary.totalBudget
+                        | currency : "PLN" : "symbol" : "1.0-0"
+                    }}
+                  </div>
+                  <div class="metric-label">Łączny budżet</div>
+                </div>
+              </div>
+
+              <div class="chart-container">
+                <h3>Rozkład czasu na projekty</h3>
+                <div class="project-chart">
+                  <!-- Tu będzie wykres kołowy wygenerowany przez bibliotekę Chart.js -->
+                  <div class="chart-placeholder pie-chart">
+                    <div class="pie-segments">
+                      <div class="segment segment-1"></div>
+                      <div class="segment segment-2"></div>
+                      <div class="segment segment-3"></div>
+                      <div class="segment segment-4"></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div
+                class="data-table-container"
+                *ngIf="projectReportData.length > 0"
+              >
+                <h3>Podsumowanie projektów</h3>
+                <table class="data-table">
+                  <thead>
+                    <tr>
+                      <th>Nazwa projektu</th>
+                      <th>Klient</th>
+                      <th>Status</th>
+                      <th>Czas (h)</th>
+                      <th>Budżet</th>
+                      <th>% ukończenia</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr *ngFor="let project of projectReportData">
+                      <td>{{ project.name }}</td>
+                      <td>{{ project.clientName }}</td>
+                      <td>
+                        <span class="status-badge status-{{ project.status }}">
+                          {{ getStatusLabel(project.status) }}
+                        </span>
+                      </td>
+                      <td>{{ project.hours | number : "1.1-1" }}</td>
+                      <td>
+                        {{
+                          project.budget | currency : "PLN" : "symbol" : "1.0-0"
+                        }}
+                      </td>
+                      <td>
+                        <div class="progress-container">
+                          <div
+                            class="progress-bar"
+                            [style.width.%]="project.progress"
+                          ></div>
+                          <span>{{ project.progress }}%</span>
+                        </div>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <div class="empty-state" *ngIf="projectReportData.length === 0">
+                <div class="empty-icon">
+                  <i class="fa fa-folder"></i>
+                </div>
+                <h3>Brak danych</h3>
+                <p>Nie znaleziono projektów spełniających kryteria.</p>
+              </div>
+            </ng-container>
+
+            <!-- Raport klientów -->
+            <ng-container *ngSwitchCase="'clients'">
+              <div class="summary-metrics">
+                <div class="metric">
+                  <div class="metric-value">{{ clientSummary.totalCount }}</div>
+                  <div class="metric-label">Liczba klientów</div>
+                </div>
+                <div class="metric">
+                  <div class="metric-value">
+                    {{ clientSummary.activeCount }}
+                  </div>
+                  <div class="metric-label">Aktywni klienci</div>
+                </div>
+                <div class="metric">
+                  <div class="metric-value">
+                    {{ clientSummary.projectCount }}
+                  </div>
+                  <div class="metric-label">Liczba projektów</div>
+                </div>
+                <div class="metric">
+                  <div class="metric-value">
+                    {{
+                      clientSummary.totalIncome
+                        | currency : "PLN" : "symbol" : "1.0-0"
+                    }}
+                  </div>
+                  <div class="metric-label">Łączny przychód</div>
+                </div>
+              </div>
+
+              <div class="chart-container">
+                <h3>Przychód wg klientów</h3>
+                <div class="client-chart">
+                  <!-- Tu będzie wykres słupkowy wygenerowany przez bibliotekę Chart.js -->
+                  <div class="chart-placeholder horizontal-bars">
+                    <div
+                      class="horizontal-bar"
+                      *ngFor="let i of [5, 3, 7, 4, 2]"
+                    >
+                      <div class="bar-label">Klient {{ i }}</div>
+                      <div class="bar-container">
+                        <div class="bar" [style.width.%]="i * 10"></div>
+                      </div>
+                      <div class="bar-value">
+                        {{ i * 1000 | currency : "PLN" : "symbol" : "1.0-0" }}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div
+                class="data-table-container"
+                *ngIf="clientReportData.length > 0"
+              >
+                <h3>Podsumowanie klientów</h3>
+                <table class="data-table">
+                  <thead>
+                    <tr>
+                      <th>Nazwa klienta</th>
+                      <th>Status</th>
+                      <th>Liczba projektów</th>
+                      <th>Czas (h)</th>
+                      <th>Przychód</th>
+                      <th>Średnia stawka</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr *ngFor="let client of clientReportData">
+                      <td>{{ client.name }}</td>
+                      <td>
+                        <span
+                          class="status-badge"
+                          [class.active]="client.isActive"
+                        >
+                          {{ client.isActive ? "Aktywny" : "Nieaktywny" }}
+                        </span>
+                      </td>
+                      <td>{{ client.projectCount }}</td>
+                      <td>{{ client.hours | number : "1.1-1" }}</td>
+                      <td>
+                        {{
+                          client.income | currency : "PLN" : "symbol" : "1.0-0"
+                        }}
+                      </td>
+                      <td>
+                        {{
+                          client.averageRate
+                            | currency : "PLN" : "symbol" : "1.0-0"
+                        }}/h
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <div class="empty-state" *ngIf="clientReportData.length === 0">
+                <div class="empty-icon">
+                  <i class="fa fa-users"></i>
+                </div>
+                <h3>Brak danych</h3>
+                <p>Nie znaleziono klientów spełniających kryteria.</p>
+              </div>
+            </ng-container>
+
+            <!-- Raport zarobków -->
+            <ng-container *ngSwitchCase="'earnings'">
+              <div class="summary-metrics">
+                <div class="metric">
+                  <div class="metric-value">
+                    {{
+                      earningSummary.totalIncome
+                        | currency : "PLN" : "symbol" : "1.0-0"
+                    }}
+                  </div>
+                  <div class="metric-label">Łączny przychód</div>
+                </div>
+                <div class="metric">
+                  <div class="metric-value">
+                    {{ earningSummary.billableHours | number : "1.1-1" }}h
+                  </div>
+                  <div class="metric-label">Czas rozliczalny</div>
+                </div>
+                <div class="metric">
+                  <div class="metric-value">
+                    {{
+                      earningSummary.averageRate
+                        | currency : "PLN" : "symbol" : "1.0-0"
+                    }}
+                  </div>
+                  <div class="metric-label">Średnia stawka</div>
+                </div>
+                <div class="metric">
+                  <div class="metric-value">
+                    {{
+                      earningSummary.averageDailyIncome
+                        | currency : "PLN" : "symbol" : "1.0-0"
+                    }}
+                  </div>
+                  <div class="metric-label">Średnio dziennie</div>
+                </div>
+              </div>
+
+              <div class="chart-container">
+                <h3>Trend zarobków</h3>
+                <div class="earnings-chart">
+                  <!-- Tu będzie wykres liniowy wygenerowany przez bibliotekę Chart.js -->
+                  <div class="chart-placeholder line-chart">
+                    <svg viewBox="0 0 300 100" preserveAspectRatio="none">
+                      <polyline
+                        points="0,80 50,70 100,90 150,30 200,50 250,40 300,20"
+                        fill="none"
+                        stroke="#3f51b5"
+                        stroke-width="2"
+                      ></polyline>
+                    </svg>
+                  </div>
+                </div>
+              </div>
+
+              <div
+                class="data-table-container"
+                *ngIf="earningReportData.length > 0"
+              >
+                <h3>Szczegóły zarobków</h3>
+                <table class="data-table">
+                  <thead>
+                    <tr>
+                      <th>Okres</th>
+                      <th>Czas rozliczalny (h)</th>
+                      <th>Przychód</th>
+                      <th>Średnia stawka</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr *ngFor="let entry of earningReportData">
+                      <td>{{ entry.period }}</td>
+                      <td>{{ entry.hours | number : "1.1-1" }}</td>
+                      <td>
+                        {{
+                          entry.income | currency : "PLN" : "symbol" : "1.0-0"
+                        }}
+                      </td>
+                      <td>
+                        {{
+                          entry.averageRate
+                            | currency : "PLN" : "symbol" : "1.0-0"
+                        }}/h
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <div class="empty-state" *ngIf="earningReportData.length === 0">
+                <div class="empty-icon">
+                  <i class="fa fa-money"></i>
+                </div>
+                <h3>Brak danych</h3>
+                <p>
+                  Nie znaleziono wpisów rozliczalnych spełniających kryteria.
+                </p>
+              </div>
+            </ng-container>
+          </ng-container>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

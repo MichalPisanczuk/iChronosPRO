@@ -1,0 +1,461 @@
+<!-- src/app/features/time-tracker/time-tracker.component.html -->
+<div class="time-tracker-container">
+  <div class="page-header">
+    <h1 class="page-title">Śledzenie czasu</h1>
+    <div class="actions">
+      <button class="btn btn-primary" (click)="openManualEntryModal()">
+        <i class="fa fa-plus"></i> Dodaj wpis ręcznie
+      </button>
+    </div>
+  </div>
+
+  <div class="time-tracker-grid">
+    <!-- Aktywny timer -->
+    <div class="time-tracker-card">
+      <div class="card-header">
+        <h2>Aktywny timer</h2>
+      </div>
+      <div class="card-content active-timer">
+        <div
+          *ngIf="activeTimer; else noActiveTimer"
+          class="active-timer-content"
+        >
+          <div class="timer-project" *ngIf="activeTask?.project">
+            {{ activeTask?.project?.name }}
+          </div>
+          <div class="timer-task">
+            <h3>{{ activeTask?.name || "Ładowanie..." }}</h3>
+            <div
+              class="task-priority"
+              [ngClass]="'priority-' + (activeTask?.priority || 'medium')"
+            >
+              {{ getPriorityLabel(activeTask?.priority || "medium") }}
+            </div>
+          </div>
+          <div class="timer-display">
+            <div class="timer-value">{{ currentTime }}</div>
+            <div class="timer-started">
+              Rozpoczęto:
+              {{ activeTimer.startTime | date : "dd.MM.yyyy, HH:mm" }}
+            </div>
+          </div>
+          <div class="timer-description" *ngIf="activeTimer.description">
+            <strong>Opis:</strong> {{ activeTimer.description }}
+          </div>
+          <div class="timer-actions">
+            <button class="btn btn-danger" (click)="stopTimer()">
+              <i class="fa fa-stop"></i> Zatrzymaj
+            </button>
+            <button class="btn btn-outline" (click)="openDescriptionModal()">
+              <i class="fa fa-edit"></i> Dodaj opis
+            </button>
+          </div>
+        </div>
+        <ng-template #noActiveTimer>
+          <div class="no-active-timer">
+            <div class="empty-state-icon">
+              <i class="fa fa-clock-o"></i>
+            </div>
+            <h3>Brak aktywnego śledzenia</h3>
+            <p>Rozpocznij śledzenie czasu dla wybranego zadania</p>
+            <button class="btn btn-primary" (click)="openTaskSelectorModal()">
+              <i class="fa fa-play"></i> Rozpocznij śledzenie
+            </button>
+          </div>
+        </ng-template>
+      </div>
+    </div>
+
+    <!-- Podsumowanie dzisiejszego dnia -->
+    <div class="time-tracker-card">
+      <div class="card-header">
+        <h2>Dzisiaj</h2>
+      </div>
+      <div class="card-content today-summary">
+        <div class="summary-metrics">
+          <div class="metric">
+            <div class="metric-value">
+              {{ todaySummary.totalHours | number : "1.1-1" }}h
+            </div>
+            <div class="metric-label">Łączny czas</div>
+          </div>
+          <div class="metric">
+            <div class="metric-value">{{ todaySummary.entryCount }}</div>
+            <div class="metric-label">Liczba wpisów</div>
+          </div>
+          <div class="metric">
+            <div class="metric-value">
+              {{ todaySummary.billableHours | number : "1.1-1" }}h
+            </div>
+            <div class="metric-label">Rozliczalne</div>
+          </div>
+          <div class="metric">
+            <div class="metric-value">
+              {{
+                todaySummary.billableAmount
+                  | currency : "PLN" : "symbol" : "1.0-0"
+              }}
+            </div>
+            <div class="metric-label">Wartość</div>
+          </div>
+        </div>
+
+        <div class="progress-container">
+          <div class="progress-header">
+            <span>Cel dzienny</span>
+            <span>{{ todaySummary.totalHours | number : "1.1-1" }}h / 8h</span>
+          </div>
+          <div class="progress-bar">
+            <div
+              class="progress-fill"
+              [style.width]="getDailyGoalPercentage() + '%'"
+            ></div>
+          </div>
+        </div>
+
+        <div class="task-distribution" *ngIf="todayTasks.length > 0">
+          <h3>Dzisiejsze zadania</h3>
+          <div class="task-list">
+            <div class="task-item" *ngFor="let task of todayTasks">
+              <div class="task-name">{{ task.name }}</div>
+              <div class="task-duration">
+                {{ task.hours | number : "1.1-1" }}h
+              </div>
+              <div class="task-percentage-bar">
+                <div
+                  class="percentage-fill"
+                  [style.width]="task.percentage + '%'"
+                ></div>
+              </div>
+              <div class="task-percentage">{{ task.percentage }}%</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Ostatnie wpisy czasowe -->
+    <div class="time-tracker-card full-width">
+      <div class="card-header">
+        <h2>Ostatnie wpisy czasowe</h2>
+        <button
+          class="btn btn-sm btn-outline"
+          (click)="loadMoreEntries()"
+          *ngIf="hasMoreEntries"
+        >
+          Pokaż więcej
+        </button>
+      </div>
+      <div class="card-content recent-entries">
+        <div *ngIf="isLoading" class="loading-container">
+          <div class="loading-spinner"></div>
+          <p>Ładowanie wpisów czasowych...</p>
+        </div>
+
+        <div *ngIf="!isLoading && timeEntries.length === 0" class="empty-state">
+          <div class="empty-state-icon">
+            <i class="fa fa-history"></i>
+          </div>
+          <h3>Brak wpisów czasowych</h3>
+          <p>Twoja historia wpisów czasowych będzie widoczna tutaj</p>
+        </div>
+
+        <div
+          *ngIf="!isLoading && timeEntries.length > 0"
+          class="time-entries-table"
+        >
+          <table>
+            <thead>
+              <tr>
+                <th>Data</th>
+                <th>Zadanie</th>
+                <th>Projekt</th>
+                <th>Czas</th>
+                <th>Opis</th>
+                <th class="actions-column">Akcje</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr
+                *ngFor="let entry of timeEntries"
+                [ngClass]="{ 'active-entry': isActiveEntry(entry) }"
+              >
+                <td class="date-column">
+                  <div class="entry-date">
+                    {{ entry.startTime | date : "dd.MM.yyyy" }}
+                  </div>
+                  <div class="entry-time">
+                    {{ entry.startTime | date : "HH:mm" }} -
+                    {{
+                      entry.endTime
+                        ? (entry.endTime | date : "HH:mm")
+                        : "Aktywne"
+                    }}
+                  </div>
+                </td>
+                <td>
+                  <a [routerLink]="['/tasks', entry.taskId]" class="task-link">
+                    {{ getTaskName(entry.taskId) }}
+                  </a>
+                </td>
+                <td>
+                  <a
+                    [routerLink]="['/projects', getProjectId(entry.taskId)]"
+                    *ngIf="getProjectId(entry.taskId)"
+                    class="project-link"
+                  >
+                    {{ getProjectName(entry.taskId) }}
+                  </a>
+                  <span *ngIf="!getProjectId(entry.taskId)">-</span>
+                </td>
+                <td class="duration-column">
+                  <span class="duration">{{
+                    formatDuration(entry.duration || 0)
+                  }}</span>
+                  <span class="billable-indicator" *ngIf="entry.isBillable"
+                    >$</span
+                  >
+                </td>
+                <td>
+                  <span class="description">{{
+                    entry.description || "-"
+                  }}</span>
+                </td>
+                <td class="actions-column">
+                  <button
+                    class="btn-icon"
+                    title="Edytuj wpis"
+                    (click)="editTimeEntry(entry)"
+                    [disabled]="isActiveEntry(entry)"
+                  >
+                    <i class="fa fa-edit"></i>
+                  </button>
+                  <button
+                    class="btn-icon btn-danger"
+                    title="Usuń wpis"
+                    (click)="deleteTimeEntry(entry)"
+                    [disabled]="isActiveEntry(entry)"
+                  >
+                    <i class="fa fa-trash"></i>
+                  </button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Wybór zadania Modal -->
+  <div *ngIf="showTaskSelectorModal" class="modal-overlay">
+    <div class="modal-container wide-modal">
+      <div class="modal-header">
+        <h3>Wybierz zadanie</h3>
+        <button class="close-btn" (click)="cancelTaskSelection()">
+          <i class="fa fa-times"></i>
+        </button>
+      </div>
+      <div class="modal-body">
+        <div class="search-box">
+          <input
+            type="text"
+            placeholder="Szukaj zadań..."
+            class="search-input"
+            [(ngModel)]="taskSearchTerm"
+            (input)="filterTasks()"
+          />
+          <i class="fa fa-search search-icon"></i>
+        </div>
+
+        <div class="task-grid" *ngIf="filteredTasks.length > 0">
+          <div
+            class="task-select-card"
+            *ngFor="let task of filteredTasks"
+            (click)="selectTask(task)"
+            [ngClass]="{ selected: selectedTaskId === task.id }"
+          >
+            <div class="task-select-header">
+              <div
+                class="task-priority"
+                [ngClass]="'priority-' + task.priority"
+              ></div>
+              <div class="task-name">{{ task.name }}</div>
+            </div>
+            <div class="task-project" *ngIf="task.project">
+              <i class="fa fa-folder-open"></i> {{ task.project.name }}
+            </div>
+            <div class="task-status" [ngClass]="'status-' + task.status">
+              {{ getStatusLabel(task.status) }}
+            </div>
+          </div>
+        </div>
+
+        <div *ngIf="filteredTasks.length === 0" class="empty-tasks">
+          <p>Nie znaleziono zadań spełniających kryteria wyszukiwania.</p>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <div class="description-field">
+          <input
+            type="text"
+            placeholder="Opis (opcjonalnie)"
+            class="form-control"
+            [(ngModel)]="newEntryDescription"
+          />
+        </div>
+        <div class="modal-actions">
+          <button class="btn btn-outline" (click)="cancelTaskSelection()">
+            Anuluj
+          </button>
+          <button
+            class="btn btn-primary"
+            (click)="startTimerForSelectedTask()"
+            [disabled]="!selectedTaskId"
+          >
+            <i class="fa fa-play"></i> Rozpocznij śledzenie
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Ręczne dodawanie wpisu Modal -->
+  <div *ngIf="showManualEntryModal" class="modal-overlay">
+    <div class="modal-container">
+      <div class="modal-header">
+        <h3>Dodaj wpis ręcznie</h3>
+        <button class="close-btn" (click)="cancelManualEntry()">
+          <i class="fa fa-times"></i>
+        </button>
+      </div>
+      <div class="modal-body">
+        <form [formGroup]="manualEntryForm">
+          <div class="form-group">
+            <label for="taskId">Zadanie</label>
+            <select id="taskId" formControlName="taskId" class="form-control">
+              <option [ngValue]="null" disabled>Wybierz zadanie</option>
+              <option *ngFor="let task of availableTasks" [value]="task.id">
+                {{ task.name }}
+              </option>
+            </select>
+            <div
+              class="error-message"
+              *ngIf="isManualFormFieldInvalid('taskId')"
+            >
+              Wybierz zadanie
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="date">Data</label>
+            <input
+              type="date"
+              id="date"
+              formControlName="date"
+              class="form-control"
+            />
+            <div class="error-message" *ngIf="isManualFormFieldInvalid('date')">
+              Podaj datę
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="startTime">Czas początkowy</label>
+              <input
+                type="time"
+                id="startTime"
+                formControlName="startTime"
+                class="form-control"
+              />
+              <div
+                class="error-message"
+                *ngIf="isManualFormFieldInvalid('startTime')"
+              >
+                Podaj czas początkowy
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label for="endTime">Czas końcowy</label>
+              <input
+                type="time"
+                id="endTime"
+                formControlName="endTime"
+                class="form-control"
+              />
+              <div
+                class="error-message"
+                *ngIf="isManualFormFieldInvalid('endTime')"
+              >
+                Podaj czas końcowy
+              </div>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="description">Opis (opcjonalnie)</label>
+            <textarea
+              id="description"
+              formControlName="description"
+              class="form-control"
+              rows="3"
+            ></textarea>
+          </div>
+
+          <div class="form-group checkbox-group">
+            <label class="checkbox-label">
+              <input type="checkbox" formControlName="isBillable" />
+              <span>Rozliczalne</span>
+            </label>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-outline" (click)="cancelManualEntry()">
+          Anuluj
+        </button>
+        <button
+          class="btn btn-primary"
+          (click)="addManualEntry()"
+          [disabled]="manualEntryForm.invalid"
+        >
+          <i class="fa fa-plus"></i> Dodaj wpis
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Dodawanie opisu Modal -->
+  <div *ngIf="showDescriptionModal && activeTimer" class="modal-overlay">
+    <div class="modal-container">
+      <div class="modal-header">
+        <h3>Dodaj opis</h3>
+        <button class="close-btn" (click)="cancelDescriptionUpdate()">
+          <i class="fa fa-times"></i>
+        </button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label for="timerDescription">Opis aktywnego śledzenia</label>
+          <textarea
+            id="timerDescription"
+            class="form-control"
+            rows="3"
+            [(ngModel)]="timerDescription"
+            placeholder="Opisz nad czym pracujesz..."
+          ></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-outline" (click)="cancelDescriptionUpdate()">
+          Anuluj
+        </button>
+        <button class="btn btn-primary" (click)="updateTimerDescription()">
+          <i class="fa fa-save"></i> Zapisz opis
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
