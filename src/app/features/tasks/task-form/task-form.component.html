@@ -1,0 +1,287 @@
+<!-- src/app/features/tasks/task-form/task-form.component.html -->
+<div class="task-form-container">
+  <div class="page-header">
+    <div class="back-button">
+      <button class="btn btn-icon" (click)="goBack()">
+        <i class="fa fa-arrow-left"></i>
+      </button>
+    </div>
+    <h1 class="page-title">
+      {{ isEditMode ? "Edytuj zadanie" : "Dodaj nowe zadanie" }}
+    </h1>
+  </div>
+
+  <div *ngIf="isLoading" class="loading-container">
+    <div class="loading-spinner"></div>
+    <p>Ładowanie danych zadania...</p>
+  </div>
+
+  <div *ngIf="errorMessage" class="error-message">
+    <i class="fa fa-exclamation-triangle"></i>
+    <p>{{ errorMessage }}</p>
+    <button *ngIf="isEditMode" class="btn btn-outline" (click)="loadTask()">
+      Spróbuj ponownie
+    </button>
+    <button class="btn btn-outline" (click)="goBack()">Wróć</button>
+  </div>
+
+  <ng-container *ngIf="!isLoading && !errorMessage">
+    <div class="form-card">
+      <form [formGroup]="taskForm" (ngSubmit)="onSubmit()">
+        <div class="form-grid">
+          <div class="form-field full-width">
+            <label for="name">Nazwa zadania *</label>
+            <input
+              type="text"
+              id="name"
+              formControlName="name"
+              class="form-control"
+              [ngClass]="{ 'is-invalid': isFieldInvalid('name') }"
+            />
+            <div class="invalid-feedback" *ngIf="isFieldInvalid('name')">
+              <div *ngIf="taskForm.get('name')?.errors?.['required']">
+                Nazwa zadania jest wymagana
+              </div>
+              <div *ngIf="taskForm.get('name')?.errors?.['minlength']">
+                Nazwa zadania musi mieć co najmniej 3 znaki
+              </div>
+              <div *ngIf="taskForm.get('name')?.errors?.['maxlength']">
+                Nazwa zadania może mieć maksymalnie 100 znaków
+              </div>
+            </div>
+          </div>
+
+          <div class="form-field">
+            <label for="projectId">Projekt *</label>
+            <select
+              id="projectId"
+              formControlName="projectId"
+              class="form-control"
+              [ngClass]="{ 'is-invalid': isFieldInvalid('projectId') }"
+            >
+              <option [ngValue]="null" disabled>Wybierz projekt</option>
+              <option *ngFor="let project of projects" [value]="project.id">
+                {{ project.name }}
+              </option>
+            </select>
+            <div class="invalid-feedback" *ngIf="isFieldInvalid('projectId')">
+              <div *ngIf="taskForm.get('projectId')?.errors?.['required']">
+                Projekt jest wymagany
+              </div>
+            </div>
+          </div>
+
+          <div class="form-field">
+            <label for="status">Status</label>
+            <div class="status-radio-group">
+              <label
+                class="status-option status-pending"
+                [class.selected]="taskForm.get('status')?.value === 'pending'"
+              >
+                <input type="radio" formControlName="status" value="pending" />
+                <span>Oczekujące</span>
+              </label>
+              <label
+                class="status-option status-in_progress"
+                [class.selected]="
+                  taskForm.get('status')?.value === 'in_progress'
+                "
+              >
+                <input
+                  type="radio"
+                  formControlName="status"
+                  value="in_progress"
+                />
+                <span>W trakcie</span>
+              </label>
+              <label
+                class="status-option status-completed"
+                [class.selected]="taskForm.get('status')?.value === 'completed'"
+              >
+                <input
+                  type="radio"
+                  formControlName="status"
+                  value="completed"
+                />
+                <span>Zakończone</span>
+              </label>
+              <label
+                class="status-option status-cancelled"
+                [class.selected]="taskForm.get('status')?.value === 'cancelled'"
+              >
+                <input
+                  type="radio"
+                  formControlName="status"
+                  value="cancelled"
+                />
+                <span>Anulowane</span>
+              </label>
+            </div>
+          </div>
+
+          <div class="form-field">
+            <label for="priority">Priorytet</label>
+            <div class="priority-radio-group">
+              <label
+                class="priority-option priority-low"
+                [class.selected]="taskForm.get('priority')?.value === 'low'"
+              >
+                <input type="radio" formControlName="priority" value="low" />
+                <span>Niski</span>
+              </label>
+              <label
+                class="priority-option priority-medium"
+                [class.selected]="taskForm.get('priority')?.value === 'medium'"
+              >
+                <input type="radio" formControlName="priority" value="medium" />
+                <span>Średni</span>
+              </label>
+              <label
+                class="priority-option priority-high"
+                [class.selected]="taskForm.get('priority')?.value === 'high'"
+              >
+                <input type="radio" formControlName="priority" value="high" />
+                <span>Wysoki</span>
+              </label>
+              <label
+                class="priority-option priority-urgent"
+                [class.selected]="taskForm.get('priority')?.value === 'urgent'"
+              >
+                <input type="radio" formControlName="priority" value="urgent" />
+                <span>Pilny</span>
+              </label>
+            </div>
+          </div>
+
+          <div class="form-field">
+            <label for="dueDate">Termin</label>
+            <input
+              type="date"
+              id="dueDate"
+              formControlName="dueDate"
+              class="form-control"
+            />
+          </div>
+
+          <div class="form-field">
+            <label for="estimatedHours">Szacowany czas (godz.)</label>
+            <input
+              type="number"
+              id="estimatedHours"
+              formControlName="estimatedHours"
+              class="form-control"
+              [ngClass]="{ 'is-invalid': isFieldInvalid('estimatedHours') }"
+              min="0"
+              step="0.5"
+            />
+            <div
+              class="invalid-feedback"
+              *ngIf="isFieldInvalid('estimatedHours')"
+            >
+              <div *ngIf="taskForm.get('estimatedHours')?.errors?.['min']">
+                Szacowany czas nie może być ujemny
+              </div>
+            </div>
+          </div>
+
+          <div class="form-field">
+            <label for="hourlyRate">Stawka godzinowa</label>
+            <input
+              type="number"
+              id="hourlyRate"
+              formControlName="hourlyRate"
+              class="form-control"
+              [ngClass]="{ 'is-invalid': isFieldInvalid('hourlyRate') }"
+              min="0"
+              step="1"
+            />
+            <div class="invalid-feedback" *ngIf="isFieldInvalid('hourlyRate')">
+              <div *ngIf="taskForm.get('hourlyRate')?.errors?.['min']">
+                Stawka godzinowa nie może być ujemna
+              </div>
+            </div>
+          </div>
+
+          <div class="form-field full-width">
+            <label for="description">Opis</label>
+            <textarea
+              id="description"
+              formControlName="description"
+              class="form-control textarea"
+              rows="4"
+            ></textarea>
+          </div>
+
+          <div class="form-field full-width">
+            <label>Tagi</label>
+            <div class="tags-container">
+              <div class="selected-tags" *ngIf="selectedTags.length > 0">
+                <div
+                  class="tag"
+                  *ngFor="let tag of selectedTags"
+                  [style.background-color]="tag.color + '33'"
+                  [style.color]="tag.color"
+                >
+                  {{ tag.name }}
+                  <button
+                    type="button"
+                    class="tag-remove"
+                    (click)="removeTag(tag)"
+                  >
+                    <i class="fa fa-times"></i>
+                  </button>
+                </div>
+              </div>
+              <div class="tags-selection">
+                <div
+                  class="tag selectable"
+                  *ngFor="let tag of availableTags"
+                  [style.background-color]="tag.color + '33'"
+                  [style.color]="tag.color"
+                  (click)="addTag(tag)"
+                >
+                  {{ tag.name }}
+                </div>
+                <button
+                  type="button"
+                  class="btn btn-outline btn-sm add-tag-btn"
+                >
+                  <i class="fa fa-plus"></i> Dodaj nowy tag
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-actions">
+          <button type="button" class="btn btn-outline" (click)="goBack()">
+            Anuluj
+          </button>
+          <button
+            type="submit"
+            class="btn btn-primary"
+            [disabled]="taskForm.invalid || isSubmitting"
+          >
+            <i
+              class="fa"
+              [ngClass]="
+                isSubmitting
+                  ? 'fa-spinner fa-spin'
+                  : isEditMode
+                  ? 'fa-save'
+                  : 'fa-plus'
+              "
+            ></i>
+            {{
+              isSubmitting
+                ? "Zapisywanie..."
+                : isEditMode
+                ? "Zapisz zmiany"
+                : "Dodaj zadanie"
+            }}
+          </button>
+        </div>
+      </form>
+    </div>
+  </ng-container>
+</div>

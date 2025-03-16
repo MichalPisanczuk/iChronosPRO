@@ -1,0 +1,283 @@
+<!-- src/app/features/projects/project-list/project-list.component.html -->
+<div class="project-list-container">
+  <div class="page-header">
+    <h1 class="page-title">Projekty</h1>
+    <div class="actions">
+      <button class="btn btn-primary" routerLink="/projects/new">
+        <i class="fa fa-plus"></i> Dodaj projekt
+      </button>
+    </div>
+  </div>
+
+  <div class="filters-container">
+    <div class="search-box">
+      <input
+        type="text"
+        placeholder="Szukaj projektów..."
+        class="search-input"
+        [(ngModel)]="searchTerm"
+        (input)="applyFilters()"
+      />
+      <i class="fa fa-search search-icon"></i>
+    </div>
+    <div class="filter-options">
+      <div class="filter-group">
+        <label>Klient:</label>
+        <select [(ngModel)]="clientFilter" (change)="applyFilters()">
+          <option value="all">Wszyscy</option>
+          <option *ngFor="let client of clients" [value]="client.id">
+            {{ client.name }}
+          </option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <label>Status:</label>
+        <select [(ngModel)]="statusFilter" (change)="applyFilters()">
+          <option value="all">Wszystkie</option>
+          <option value="active">Aktywne</option>
+          <option value="paused">Wstrzymane</option>
+          <option value="completed">Zakończone</option>
+          <option value="cancelled">Anulowane</option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <label>Sortuj wg:</label>
+        <select [(ngModel)]="sortBy" (change)="applyFilters()">
+          <option value="name">Nazwa</option>
+          <option value="clientName">Klient</option>
+          <option value="status">Status</option>
+          <option value="startDate">Data rozpoczęcia</option>
+          <option value="endDate">Data zakończenia</option>
+          <option value="createdAt">Data utworzenia</option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <label>Kierunek:</label>
+        <select [(ngModel)]="sortDirection" (change)="applyFilters()">
+          <option value="asc">Rosnąco</option>
+          <option value="desc">Malejąco</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <div class="content-card">
+    <div *ngIf="isLoading" class="loading-container">
+      <div class="loading-spinner"></div>
+      <p>Ładowanie projektów...</p>
+    </div>
+
+    <div *ngIf="errorMessage" class="error-message">
+      <i class="fa fa-exclamation-triangle"></i>
+      <p>{{ errorMessage }}</p>
+      <button class="btn btn-outline" (click)="loadProjects()">
+        Spróbuj ponownie
+      </button>
+    </div>
+
+    <div *ngIf="!isLoading && !errorMessage">
+      <div
+        *ngIf="filteredProjects.length > 0; else noProjects"
+        class="project-grid"
+      >
+        <div
+          class="project-card"
+          *ngFor="let project of filteredProjects"
+          (click)="viewProjectDetails(project)"
+        >
+          <div class="project-header">
+            <h3 class="project-name">{{ project.name }}</h3>
+            <span class="project-status status-{{ project.status }}">
+              {{ getStatusLabel(project.status) }}
+            </span>
+          </div>
+
+          <div class="project-client" *ngIf="project.client">
+            <i class="fa fa-user"></i> {{ project.client.name }}
+          </div>
+
+          <div class="project-description" *ngIf="project.description">
+            {{ project.description | slice : 0 : 100
+            }}{{ project.description.length > 100 ? "..." : "" }}
+          </div>
+          <div
+            class="project-description no-description"
+            *ngIf="!project.description"
+          >
+            Brak opisu
+          </div>
+
+          <div class="project-dates">
+            <div class="date-item" *ngIf="project.startDate">
+              <span class="date-label">Rozpoczęcie:</span>
+              <span class="date-value">{{
+                project.startDate | date : "dd.MM.yyyy"
+              }}</span>
+            </div>
+            <div class="date-item" *ngIf="project.endDate">
+              <span class="date-label">Zakończenie:</span>
+              <span class="date-value">{{
+                project.endDate | date : "dd.MM.yyyy"
+              }}</span>
+            </div>
+          </div>
+
+          <div class="project-stats">
+            <div class="stats-item">
+              <i class="fa fa-tasks"></i>
+              <span>{{ projectTaskCounts[project.id] || 0 }} zadań</span>
+            </div>
+            <div class="stats-item" *ngIf="project.budget">
+              <i class="fa fa-money"></i>
+              <span>{{
+                project.budget | currency : "PLN" : "symbol" : "1.0-0"
+              }}</span>
+            </div>
+          </div>
+
+          <div class="project-actions">
+            <button
+              class="btn-icon"
+              title="Edytuj projekt"
+              (click)="editProject(project, $event)"
+            >
+              <i class="fa fa-edit"></i>
+            </button>
+            <button
+              class="btn-icon"
+              title="Zmień status"
+              (click)="openStatusModal(project, $event)"
+            >
+              <i class="fa fa-refresh"></i>
+            </button>
+            <button
+              class="btn-icon btn-danger"
+              title="Usuń projekt"
+              (click)="confirmDeleteProject(project, $event)"
+            >
+              <i class="fa fa-trash"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <ng-template #noProjects>
+        <div class="empty-state">
+          <div class="empty-icon">
+            <i class="fa fa-folder-open"></i>
+          </div>
+          <h3>Brak projektów</h3>
+          <p
+            *ngIf="
+              searchTerm || statusFilter !== 'all' || clientFilter !== 'all'
+            "
+          >
+            Żaden projekt nie spełnia wybranych kryteriów. Zmień filtry lub
+            dodaj nowe projekty.
+          </p>
+          <p
+            *ngIf="
+              !searchTerm && statusFilter === 'all' && clientFilter === 'all'
+            "
+          >
+            Nie masz jeszcze żadnych projektów. Dodaj pierwszy projekt, aby
+            zacząć.
+          </p>
+          <button class="btn btn-primary" routerLink="/projects/new">
+            <i class="fa fa-plus"></i> Dodaj pierwszy projekt
+          </button>
+        </div>
+      </ng-template>
+    </div>
+  </div>
+
+  <!-- Modal do zmiany statusu -->
+  <div *ngIf="showStatusModal" class="modal-overlay">
+    <div class="modal-container">
+      <div class="modal-header">
+        <h3>Zmień status projektu</h3>
+        <button class="close-btn" (click)="cancelStatusChange()">
+          <i class="fa fa-times"></i>
+        </button>
+      </div>
+      <div class="modal-body">
+        <p>
+          Wybierz nowy status dla projektu:
+          <strong>{{ projectToUpdate?.name }}</strong>
+        </p>
+        <div class="status-buttons">
+          <button
+            class="status-btn status-active"
+            [class.selected]="selectedStatus === 'active'"
+            (click)="selectedStatus = 'active'"
+          >
+            Aktywny
+          </button>
+          <button
+            class="status-btn status-paused"
+            [class.selected]="selectedStatus === 'paused'"
+            (click)="selectedStatus = 'paused'"
+          >
+            Wstrzymany
+          </button>
+          <button
+            class="status-btn status-completed"
+            [class.selected]="selectedStatus === 'completed'"
+            (click)="selectedStatus = 'completed'"
+          >
+            Zakończony
+          </button>
+          <button
+            class="status-btn status-cancelled"
+            [class.selected]="selectedStatus === 'cancelled'"
+            (click)="selectedStatus = 'cancelled'"
+          >
+            Anulowany
+          </button>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-outline" (click)="cancelStatusChange()">
+          Anuluj
+        </button>
+        <button
+          class="btn btn-primary"
+          (click)="updateProjectStatus()"
+          [disabled]="!selectedStatus"
+        >
+          Zmień status
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal do potwierdzenia usunięcia -->
+  <div *ngIf="showDeleteModal" class="modal-overlay">
+    <div class="modal-container">
+      <div class="modal-header">
+        <h3>Potwierdzenie usunięcia</h3>
+        <button class="close-btn" (click)="cancelDelete()">
+          <i class="fa fa-times"></i>
+        </button>
+      </div>
+      <div class="modal-body">
+        <p>
+          Czy na pewno chcesz usunąć projekt:
+          <strong>{{ projectToDelete?.name }}</strong
+          >?
+        </p>
+        <p class="warning-text">
+          <i class="fa fa-exclamation-triangle"></i>
+          Ta operacja jest nieodwracalna i spowoduje również usunięcie
+          wszystkich zadań powiązanych z tym projektem.
+        </p>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-outline" (click)="cancelDelete()">Anuluj</button>
+        <button class="btn btn-danger" (click)="deleteProject()">
+          <i class="fa fa-trash"></i> Usuń projekt
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

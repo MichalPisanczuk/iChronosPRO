@@ -1,0 +1,332 @@
+<!-- src/app/features/tasks/task-detail/task-detail.component.html -->
+<div class="task-detail-container">
+  <div class="page-header">
+    <div class="back-button">
+      <button class="btn btn-icon" routerLink="/tasks">
+        <i class="fa fa-arrow-left"></i>
+      </button>
+    </div>
+    <h1 class="page-title">
+      <span *ngIf="task">{{ task.name }}</span>
+      <span *ngIf="!task && !errorMessage">Szczegóły zadania</span>
+    </h1>
+    <div class="actions" *ngIf="task">
+      <button class="btn btn-outline" (click)="openStatusModal()">
+        <i class="fa fa-refresh"></i> Zmień status
+      </button>
+      <button
+        class="btn btn-outline"
+        [routerLink]="['/tasks', task.id, 'edit']"
+      >
+        <i class="fa fa-edit"></i> Edytuj
+      </button>
+      <button class="btn btn-danger" (click)="confirmDeleteTask()">
+        <i class="fa fa-trash"></i> Usuń
+      </button>
+    </div>
+  </div>
+
+  <div *ngIf="isLoading" class="loading-container">
+    <div class="loading-spinner"></div>
+    <p>Ładowanie danych zadania...</p>
+  </div>
+
+  <div *ngIf="errorMessage" class="error-message">
+    <i class="fa fa-exclamation-triangle"></i>
+    <p>{{ errorMessage }}</p>
+    <button class="btn btn-outline" (click)="loadTask()">
+      Spróbuj ponownie
+    </button>
+    <button class="btn btn-outline" routerLink="/tasks">
+      Wróć do listy zadań
+    </button>
+  </div>
+
+  <ng-container *ngIf="task && !isLoading">
+    <div class="content-section">
+      <div class="task-info-card">
+        <div class="card-header">
+          <div class="header-left">
+            <div class="priority-badge" [ngClass]="'priority-' + task.priority">
+              {{ getPriorityLabel(task.priority) }}
+            </div>
+            <div class="status-badge" [ngClass]="'status-' + task.status">
+              {{ getStatusLabel(task.status) }}
+            </div>
+          </div>
+          <div class="header-right" *ngIf="task.dueDate">
+            <span class="due-date" [ngClass]="{ overdue: isOverdue(task) }">
+              <i class="fa fa-calendar"></i>
+              Termin: {{ task.dueDate | date : "dd.MM.yyyy" }}
+              <span *ngIf="isOverdue(task)" class="overdue-tag">Zaległe</span>
+            </span>
+          </div>
+        </div>
+
+        <div class="card-content">
+          <div class="project-link" *ngIf="task.project">
+            <h3>Projekt:</h3>
+            <a [routerLink]="['/projects', task.projectId]">{{
+              task.project.name
+            }}</a>
+          </div>
+
+          <div class="task-description" *ngIf="task.description">
+            <h3>Opis:</h3>
+            <div class="description-content">{{ task.description }}</div>
+          </div>
+
+          <div class="task-tags" *ngIf="task.tags && task.tags.length > 0">
+            <h3>Tagi:</h3>
+            <div class="tags-list">
+              <span
+                class="tag"
+                *ngFor="let tag of task.tags"
+                [style.background-color]="tag.color + '33'"
+                [style.color]="tag.color"
+              >
+                {{ tag.name }}
+              </span>
+            </div>
+          </div>
+
+          <div class="task-metrics">
+            <div class="metric-group">
+              <div
+                class="metric-item"
+                *ngIf="
+                  task.estimatedHours !== undefined &&
+                  task.estimatedHours !== null
+                "
+              >
+                <div class="metric-label">Szacowany czas:</div>
+                <div class="metric-value">{{ task.estimatedHours }} godz.</div>
+              </div>
+              <div
+                class="metric-item"
+                *ngIf="
+                  task.hourlyRate !== undefined && task.hourlyRate !== null
+                "
+              >
+                <div class="metric-label">Stawka godzinowa:</div>
+                <div class="metric-value">
+                  {{ task.hourlyRate | currency : "PLN" : "symbol" : "1.0-0" }}
+                </div>
+              </div>
+            </div>
+            <div class="metrics-divider"></div>
+            <div class="metric-group">
+              <div class="metric-item">
+                <div class="metric-label">Data utworzenia:</div>
+                <div class="metric-value">
+                  {{ task.createdAt | date : "dd.MM.yyyy" }}
+                </div>
+              </div>
+              <div class="metric-item">
+                <div class="metric-label">Ostatnia aktualizacja:</div>
+                <div class="metric-value">
+                  {{ task.updatedAt | date : "dd.MM.yyyy" }}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="content-section">
+      <div class="time-entries-card">
+        <div class="card-header">
+          <h2>Śledzenie czasu</h2>
+          <button
+            class="btn btn-primary btn-sm"
+            (click)="startTimer()"
+            [disabled]="isTimerRunning"
+          >
+            <i class="fa fa-play"></i> Rozpocznij śledzenie
+          </button>
+        </div>
+
+        <div class="time-entries-section">
+          <div *ngIf="isLoadingTimeEntries" class="loading-container small">
+            <div class="loading-spinner small"></div>
+            <p>Ładowanie wpisów czasowych...</p>
+          </div>
+
+          <div *ngIf="!isLoadingTimeEntries">
+            <div class="time-summary">
+              <div class="summary-item">
+                <div class="summary-label">Łączny czas:</div>
+                <div class="summary-value">
+                  {{ totalHours | number : "1.1-1" }} godz.
+                </div>
+              </div>
+              <div class="summary-item">
+                <div class="summary-label">Liczba wpisów:</div>
+                <div class="summary-value">{{ timeEntries.length }}</div>
+              </div>
+              <div
+                class="summary-item"
+                *ngIf="totalHours > 0 && task.hourlyRate"
+              >
+                <div class="summary-label">Wartość:</div>
+                <div class="summary-value">
+                  {{
+                    totalHours * task.hourlyRate
+                      | currency : "PLN" : "symbol" : "1.0-0"
+                  }}
+                </div>
+              </div>
+            </div>
+
+            <div
+              class="time-entries-list"
+              *ngIf="timeEntries.length > 0; else noTimeEntries"
+            >
+              <div class="time-entry" *ngFor="let entry of timeEntries">
+                <div class="time-entry-header">
+                  <span class="entry-date">{{
+                    entry.startTime | date : "dd.MM.yyyy"
+                  }}</span>
+                  <span class="entry-time">
+                    {{ entry.startTime | date : "HH:mm" }} -
+                    {{
+                      entry.endTime
+                        ? (entry.endTime | date : "HH:mm")
+                        : "Aktywne"
+                    }}
+                  </span>
+                  <span class="entry-duration">{{
+                    formatDuration(entry.duration || 0)
+                  }}</span>
+                </div>
+                <div class="time-entry-description" *ngIf="entry.description">
+                  {{ entry.description }}
+                </div>
+                <div class="time-entry-actions">
+                  <button
+                    class="btn-icon"
+                    title="Edytuj wpis"
+                    (click)="editTimeEntry(entry)"
+                  >
+                    <i class="fa fa-edit"></i>
+                  </button>
+                  <button
+                    class="btn-icon btn-danger"
+                    title="Usuń wpis"
+                    (click)="deleteTimeEntry(entry)"
+                  >
+                    <i class="fa fa-trash"></i>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <ng-template #noTimeEntries>
+              <div class="empty-state small">
+                <div class="empty-icon small">
+                  <i class="fa fa-clock-o"></i>
+                </div>
+                <h3>Brak wpisów czasowych</h3>
+                <p>Dla tego zadania nie zarejestrowano jeszcze czasu.</p>
+                <button
+                  class="btn btn-primary"
+                  (click)="startTimer()"
+                  [disabled]="isTimerRunning"
+                >
+                  <i class="fa fa-play"></i> Rozpocznij śledzenie
+                </button>
+              </div>
+            </ng-template>
+          </div>
+        </div>
+      </div>
+    </div>
+  </ng-container>
+
+  <!-- Modal do zmiany statusu -->
+  <div *ngIf="showStatusModal" class="modal-overlay">
+    <div class="modal-container">
+      <div class="modal-header">
+        <h3>Zmień status zadania</h3>
+        <button class="close-btn" (click)="cancelStatusChange()">
+          <i class="fa fa-times"></i>
+        </button>
+      </div>
+      <div class="modal-body">
+        <p>Wybierz nowy status dla zadania:</p>
+        <div class="status-buttons">
+          <button
+            class="status-btn status-pending"
+            [class.selected]="selectedStatus === 'pending'"
+            (click)="selectedStatus = 'pending'"
+          >
+            Oczekujące
+          </button>
+          <button
+            class="status-btn status-in_progress"
+            [class.selected]="selectedStatus === 'in_progress'"
+            (click)="selectedStatus = 'in_progress'"
+          >
+            W trakcie
+          </button>
+          <button
+            class="status-btn status-completed"
+            [class.selected]="selectedStatus === 'completed'"
+            (click)="selectedStatus = 'completed'"
+          >
+            Zakończone
+          </button>
+          <button
+            class="status-btn status-cancelled"
+            [class.selected]="selectedStatus === 'cancelled'"
+            (click)="selectedStatus = 'cancelled'"
+          >
+            Anulowane
+          </button>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-outline" (click)="cancelStatusChange()">
+          Anuluj
+        </button>
+        <button
+          class="btn btn-primary"
+          (click)="updateTaskStatus()"
+          [disabled]="!selectedStatus"
+        >
+          Zmień status
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal do potwierdzenia usunięcia -->
+  <div *ngIf="showDeleteModal" class="modal-overlay">
+    <div class="modal-container">
+      <div class="modal-header">
+        <h3>Potwierdzenie usunięcia</h3>
+        <button class="close-btn" (click)="cancelDelete()">
+          <i class="fa fa-times"></i>
+        </button>
+      </div>
+      <div class="modal-body">
+        <p>
+          Czy na pewno chcesz usunąć zadanie: <strong>{{ task?.name }}</strong
+          >?
+        </p>
+        <p class="warning-text">
+          <i class="fa fa-exclamation-triangle"></i>
+          Ta operacja jest nieodwracalna i spowoduje również usunięcie
+          wszystkich wpisów czasowych powiązanych z tym zadaniem.
+        </p>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-outline" (click)="cancelDelete()">Anuluj</button>
+        <button class="btn btn-danger" (click)="deleteTask()">
+          <i class="fa fa-trash"></i> Usuń zadanie
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,299 @@
+<!-- src/app/features/tasks/task-list/task-list.component.html -->
+<div class="task-list-container">
+  <div class="page-header">
+    <h1 class="page-title">Zadania</h1>
+    <div class="actions">
+      <button class="btn btn-primary" routerLink="/tasks/new">
+        <i class="fa fa-plus"></i> Dodaj zadanie
+      </button>
+    </div>
+  </div>
+
+  <div class="filters-container">
+    <div class="search-box">
+      <input
+        type="text"
+        placeholder="Szukaj zadań..."
+        class="search-input"
+        [(ngModel)]="searchTerm"
+        (input)="applyFilters()"
+      />
+      <i class="fa fa-search search-icon"></i>
+    </div>
+    <div class="filter-options">
+      <div class="filter-group">
+        <label>Projekt:</label>
+        <select [(ngModel)]="projectFilter" (change)="applyFilters()">
+          <option value="all">Wszystkie</option>
+          <option *ngFor="let project of projects" [value]="project.id">
+            {{ project.name }}
+          </option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <label>Status:</label>
+        <select [(ngModel)]="statusFilter" (change)="applyFilters()">
+          <option value="all">Wszystkie</option>
+          <option value="pending">Oczekujące</option>
+          <option value="in_progress">W trakcie</option>
+          <option value="completed">Zakończone</option>
+          <option value="cancelled">Anulowane</option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <label>Priorytet:</label>
+        <select [(ngModel)]="priorityFilter" (change)="applyFilters()">
+          <option value="all">Wszystkie</option>
+          <option value="low">Niski</option>
+          <option value="medium">Średni</option>
+          <option value="high">Wysoki</option>
+          <option value="urgent">Pilny</option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <label>Sortuj wg:</label>
+        <select [(ngModel)]="sortBy" (change)="applyFilters()">
+          <option value="name">Nazwa</option>
+          <option value="priority">Priorytet</option>
+          <option value="status">Status</option>
+          <option value="dueDate">Termin</option>
+          <option value="createdAt">Data utworzenia</option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <label>Kierunek:</label>
+        <select [(ngModel)]="sortDirection" (change)="applyFilters()">
+          <option value="asc">Rosnąco</option>
+          <option value="desc">Malejąco</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <div class="content-card">
+    <div *ngIf="isLoading" class="loading-container">
+      <div class="loading-spinner"></div>
+      <p>Ładowanie zadań...</p>
+    </div>
+
+    <div *ngIf="errorMessage" class="error-message">
+      <i class="fa fa-exclamation-triangle"></i>
+      <p>{{ errorMessage }}</p>
+      <button class="btn btn-outline" (click)="loadTasks()">
+        Spróbuj ponownie
+      </button>
+    </div>
+
+    <div *ngIf="!isLoading && !errorMessage">
+      <div class="task-list" *ngIf="filteredTasks.length > 0; else noTasks">
+        <div
+          class="task-item"
+          *ngFor="let task of filteredTasks"
+          (click)="viewTaskDetails(task)"
+        >
+          <div
+            class="task-priority"
+            [ngClass]="'priority-' + task.priority"
+          ></div>
+
+          <div class="task-content">
+            <div class="task-header">
+              <h3 class="task-name">{{ task.name }}</h3>
+              <span class="task-status status-{{ task.status }}">
+                {{ getStatusLabel(task.status) }}
+              </span>
+            </div>
+
+            <div class="task-project" *ngIf="task.project">
+              <i class="fa fa-folder-open"></i> {{ task.project.name }}
+            </div>
+
+            <div class="task-description" *ngIf="task.description">
+              {{ task.description | slice : 0 : 150
+              }}{{ task.description.length > 150 ? "..." : "" }}
+            </div>
+
+            <div class="task-meta">
+              <div class="meta-item" *ngIf="task.dueDate">
+                <i class="fa fa-calendar"></i>
+                <span [ngClass]="{ overdue: isOverdue(task) }">
+                  {{ task.dueDate | date : "dd.MM.yyyy" }}
+                  <span *ngIf="isOverdue(task)" class="overdue-tag"
+                    >Zaległe</span
+                  >
+                </span>
+              </div>
+              <div class="meta-item" *ngIf="task.estimatedHours">
+                <i class="fa fa-clock-o"></i>
+                <span>{{ task.estimatedHours }} godz.</span>
+              </div>
+              <div
+                class="meta-item tags"
+                *ngIf="task.tags && task.tags.length > 0"
+              >
+                <i class="fa fa-tag"></i>
+                <div class="tag-list">
+                  <span
+                    class="tag"
+                    *ngFor="let tag of task.tags"
+                    [style.background-color]="tag.color + '33'"
+                    [style.color]="tag.color"
+                  >
+                    {{ tag.name }}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="task-actions">
+            <button
+              class="btn-icon"
+              title="Zmień status"
+              (click)="openStatusModal(task, $event)"
+            >
+              <i class="fa fa-refresh"></i>
+            </button>
+            <button
+              class="btn-icon"
+              title="Edytuj zadanie"
+              (click)="editTask(task, $event)"
+            >
+              <i class="fa fa-edit"></i>
+            </button>
+            <button
+              class="btn-icon btn-danger"
+              title="Usuń zadanie"
+              (click)="confirmDeleteTask(task, $event)"
+            >
+              <i class="fa fa-trash"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <ng-template #noTasks>
+        <div class="empty-state">
+          <div class="empty-icon">
+            <i class="fa fa-tasks"></i>
+          </div>
+          <h3>Brak zadań</h3>
+          <p
+            *ngIf="
+              searchTerm ||
+              statusFilter !== 'all' ||
+              priorityFilter !== 'all' ||
+              projectFilter !== 'all'
+            "
+          >
+            Żadne zadanie nie spełnia wybranych kryteriów. Zmień filtry lub
+            dodaj nowe zadania.
+          </p>
+          <p
+            *ngIf="
+              !searchTerm &&
+              statusFilter === 'all' &&
+              priorityFilter === 'all' &&
+              projectFilter === 'all'
+            "
+          >
+            Nie masz jeszcze żadnych zadań. Dodaj pierwsze zadanie, aby zacząć.
+          </p>
+          <button class="btn btn-primary" routerLink="/tasks/new">
+            <i class="fa fa-plus"></i> Dodaj pierwsze zadanie
+          </button>
+        </div>
+      </ng-template>
+    </div>
+  </div>
+
+  <!-- Modal do zmiany statusu -->
+  <div *ngIf="showStatusModal" class="modal-overlay">
+    <div class="modal-container">
+      <div class="modal-header">
+        <h3>Zmień status zadania</h3>
+        <button class="close-btn" (click)="cancelStatusChange()">
+          <i class="fa fa-times"></i>
+        </button>
+      </div>
+      <div class="modal-body">
+        <p>
+          Wybierz nowy status dla zadania:
+          <strong>{{ taskToUpdate?.name }}</strong>
+        </p>
+        <div class="status-buttons">
+          <button
+            class="status-btn status-pending"
+            [class.selected]="selectedStatus === 'pending'"
+            (click)="selectedStatus = 'pending'"
+          >
+            Oczekujące
+          </button>
+          <button
+            class="status-btn status-in_progress"
+            [class.selected]="selectedStatus === 'in_progress'"
+            (click)="selectedStatus = 'in_progress'"
+          >
+            W trakcie
+          </button>
+          <button
+            class="status-btn status-completed"
+            [class.selected]="selectedStatus === 'completed'"
+            (click)="selectedStatus = 'completed'"
+          >
+            Zakończone
+          </button>
+          <button
+            class="status-btn status-cancelled"
+            [class.selected]="selectedStatus === 'cancelled'"
+            (click)="selectedStatus = 'cancelled'"
+          >
+            Anulowane
+          </button>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-outline" (click)="cancelStatusChange()">
+          Anuluj
+        </button>
+        <button
+          class="btn btn-primary"
+          (click)="updateTaskStatus()"
+          [disabled]="!selectedStatus"
+        >
+          Zmień status
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal do potwierdzenia usunięcia -->
+  <div *ngIf="showDeleteModal" class="modal-overlay">
+    <div class="modal-container">
+      <div class="modal-header">
+        <h3>Potwierdzenie usunięcia</h3>
+        <button class="close-btn" (click)="cancelDelete()">
+          <i class="fa fa-times"></i>
+        </button>
+      </div>
+      <div class="modal-body">
+        <p>
+          Czy na pewno chcesz usunąć zadanie:
+          <strong>{{ taskToDelete?.name }}</strong
+          >?
+        </p>
+        <p class="warning-text">
+          <i class="fa fa-exclamation-triangle"></i>
+          Ta operacja jest nieodwracalna i spowoduje również usunięcie
+          wszystkich wpisów czasowych powiązanych z tym zadaniem.
+        </p>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-outline" (click)="cancelDelete()">Anuluj</button>
+        <button class="btn btn-danger" (click)="deleteTask()">
+          <i class="fa fa-trash"></i> Usuń zadanie
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

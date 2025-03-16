@@ -1,0 +1,43 @@
+<!-- src/app/features/projects/project-detail/project-detail.component.html -->
+<div class="project-detail-container">
+  <div class="page-header">
+    <div class="back-button">
+      <button class="btn btn-icon" routerLink="/projects">
+        <i class="fa fa-arrow-left"></i>
+      </button>
+    </div>
+    <h1 class="page-title">
+      <span *ngIf="project">{{ project.name }}</span>
+      <span *ngIf="!project && !errorMessage">Szczegóły projektu</span>
+    </h1>
+    <div class="actions" *ngIf="project">
+      <button
+        class="btn btn-outline"
+        [routerLink]="['/projects', project.id, 'edit']"
+      >
+        <i class="fa fa-edit"></i> Edytuj
+      </button>
+    </div>
+  </div>
+
+  <div *ngIf="isLoading" class="loading-container">
+    <div class="loading-spinner"></div>
+    <p>Ładowanie danych projektu...</p>
+  </div>
+
+  <div *ngIf="errorMessage" class="error-message">
+    <i class="fa fa-exclamation-triangle"></i>
+    <p>{{ errorMessage }}</p>
+    <button class="btn btn-outline" (click)="loadProject()">
+      Spróbuj ponownie
+    </button>
+    <button class="btn btn-outline" routerLink="/projects">
+      Wróć do listy projektów
+    </button>
+  </div>
+
+  <ng-container *ngIf="project && !isLoading">
+    <!-- Tutaj zostanie dodana pełna implementacja widoku szczegółów projektu -->
+    <p>Szczegółowy widok projektu jest w trakcie implementacji.</p>
+  </ng-container>
+</div>
